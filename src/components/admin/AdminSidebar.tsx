@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard,
   Package,
+  Tag,
   Users,
   Truck,
   ShoppingBag,
@@ -18,6 +19,7 @@ import {
 const links = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/admin/produtos', label: 'Produtos', icon: Package },
+  { href: '/admin/categorias', label: 'Categorias', icon: Tag },
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/fornecedores', label: 'Fornecedores', icon: Truck },
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
