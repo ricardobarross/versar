@@ -16,15 +16,20 @@ export default function LojaNavbar({ config }: { config: ConfiguracoesLoja | nul
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-zinc-600 hover:text-zinc-950 text-sm transition-colors">Início</Link>
-          <Link href="/#produtos" className="text-zinc-600 hover:text-zinc-950 text-sm transition-colors">Produtos</Link>
+          <Link href="/" className="text-zinc-600 hover:text-zinc-950 text-sm transition-colors">
+            Início
+          </Link>
+          <Link href="/#produtos" className="text-zinc-600 hover:text-zinc-950 text-sm transition-colors">
+            Produtos
+          </Link>
           {config?.whatsapp && (
-            
+            <a
               href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm hover:bg-zinc-800 transition-colors"
             >
-              Fale connosco
+              Fale conosco
             </a>
           )}
         </nav>
@@ -36,12 +41,20 @@ export default function LojaNavbar({ config }: { config: ConfiguracoesLoja | nul
 
       {menuOpen && (
         <div className="md:hidden border-t border-zinc-100 bg-white px-4 py-4 space-y-3">
-          <Link href="/" onClick={() => setMenuOpen(false)} className="block text-zinc-600 text-sm">Início</Link>
-          <Link href="/#produtos" onClick={() => setMenuOpen(false)} className="block text-zinc-600 text-sm">Produtos</Link>
+          <Link href="/" onClick={() => setMenuOpen(false)} className="block text-zinc-600 text-sm">
+            Início
+          </Link>
+          <Link href="/#produtos" onClick={() => setMenuOpen(false)} className="block text-zinc-600 text-sm">
+            Produtos
+          </Link>
           {config?.whatsapp && (
-            <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} target="_blank"
-              className="block bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm text-center">
-              Fale connosco
+            <a 
+              href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm text-center"
+            >
+              Fale conosco
             </a>
           )}
         </div>

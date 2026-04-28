@@ -130,7 +130,6 @@ export default function PedidoForm({ clientes, produtos, pedido }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
-
       {/* Cabeçalho */}
       <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
         <h2 className="text-white font-semibold">Informações do pedido</h2>
@@ -193,9 +192,65 @@ export default function PedidoForm({ clientes, produtos, pedido }: Props) {
         )}
 
         <div className="space-y-3">
-          {itens.map((item, index) => {
-            const produto = produtos.find(p => p.id === item.produto_id)
-            const variacoes = produto?.produto_variacoes ?? []
+          {itens.map((item, index) => (
+            <div key={index} className="grid grid-cols-12 gap-3 items-start bg-zinc-800/50 p-4 rounded-xl border border-zinc-800">
+              <div className="col-span-5">
+                <label className="block text-zinc-500 text-xs mb-1">Produto</label>
+                <select 
+                  value={item.produto_id} 
+                  onChange={e => atualizarItem(index, 'produto_id', e.target.value)}
+                  className="w-full bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 text-sm focus:outline-none"
+                >
+                  <option value="">Selecionar</option>
+                  {produtos.map(p => (
+                    <option key={p.id} value={p.id}>{p.nome}</option>
+                  ))}
+                </select>
+              </div>
 
-            return (
-              <div key={index} className="grid grid-cols-12 gap-3 items-sta
+              <div className="col-span-3">
+                <label className="block text-zinc-500 text-xs mb-1">Qtd</label>
+                <input 
+                  type="number" 
+                  value={item.quantidade} 
+                  onChange={e => atualizarItem(index, 'quantidade', Number(e.target.value))}
+                  className="w-full bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="col-span-3">
+                <label className="block text-zinc-500 text-xs mb-1">Preço Unit.</label>
+                <div className="text-white pt-2 text-sm">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.preco_unitario)}
+                </div>
+              </div>
+
+              <div className="col-span-1 pt-6">
+                <button type="button" onClick={() => removerItem(index)} className="text-zinc-500 hover:text-red-400">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="pt-4 border-t border-zinc-800 flex justify-between items-center">
+          <span className="text-zinc-400">Total do Pedido:</span>
+          <span className="text-2xl font-bold text-white">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)}
+          </span>
+        </div>
+      </div>
+
+      {erro && <p className="text-red-400 text-sm">{erro}</p>}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-200 transition-colors disabled:opacity-50"
+      >
+        {loading ? 'Salvando...' : pedido ? 'Atualizar Pedido' : 'Criar Pedido'}
+      </button>
+    </form>
+  )
+}
