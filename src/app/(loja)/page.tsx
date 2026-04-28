@@ -33,7 +33,7 @@ export default async function LojaPage() {
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative text-center px-4">
           <h1 className="text-5xl md:text-7xl font-bold tracking-widest mb-4">
-            {config?.nome_loja ?? 'VERSAR'}
+            {config?.nome_lo_ja ?? 'VERSAR'}
           </h1>
           <p className="text-xl md:text-2xl text-zinc-300 mb-2">
             {config?.banner_titulo ?? 'Moda masculina de qualidade'}
@@ -42,6 +42,7 @@ export default async function LojaPage() {
             {config?.banner_subtitulo ?? 'Estilo que faz a diferença'}
           </p>
           
+          <a
             href="#produtos"
             className="bg-white text-black px-8 py-3 rounded-full font-semibold hover:bg-zinc-200 transition-colors"
           >
