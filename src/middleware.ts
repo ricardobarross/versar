@@ -27,12 +27,10 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Se tenta aceder /admin sem estar autenticado → redireciona para login
   if (request.nextUrl.pathname.startsWith('/admin') && !user) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Se já está autenticado e vai para login → redireciona para admin
   if (request.nextUrl.pathname === '/auth/login' && user) {
     return NextResponse.redirect(new URL('/admin', request.url))
   }

@@ -38,13 +38,11 @@ export default function AdminSidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-      {/* Logo */}
       <div className="p-6 border-b border-zinc-800">
         <h1 className="text-2xl font-bold text-white tracking-widest">VERSAR</h1>
         <p className="text-zinc-500 text-xs mt-1">Painel Admin</p>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 p-4 space-y-1">
         {links.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href)
@@ -65,7 +63,6 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="p-4 border-t border-zinc-800 space-y-2">
         <Link
           href="/"
