@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import ProdutoCard from '@/components/loja/ProdutoCard'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LojaPage() {
   const supabase = createClient()
 
