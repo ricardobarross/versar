@@ -4,39 +4,24 @@ import PaginaProduto from '@/components/loja/PaginaProduto'
 
 export const dynamic = 'force-dynamic'
 
+// No Next.js 15, params é uma Promise
 interface PageProps {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }>
 }
 
 export default async function Page({ params }: PageProps) {
+  const { slug } = await params
   const supabase = createClient()
 
-  // O SEGREDO ESTÁ AQUI: 
-  // Precisamos incluir 'produto_fotos(*)' na seleção para que o array de fotos não venha vazio.
   const { data: produto, error } = await supabase
     .from('produtos')
     .select(`
       *,
-      categorias (
-        id,
-        nome,
-        slug
-      ),
-      produto_fotos (
-        id,
-        url,
-        principal
-      ),
-      produto_variacoes (
-        id,
-        cor,
-        tamanho,
-        stock
-      )
+      categorias (id, nome, slug),
+      produto_fotos (id, url, principal),
+      produto_variacoes (id, cor, tamanho, estoque)
     `)
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('ativo', true)
     .single()
 
@@ -45,5 +30,14 @@ export default async function Page({ params }: PageProps) {
     notFound()
   }
 
-  return <PaginaProduto produto={produto} />
+  // Ajusta 'estoque' do banco para 'stock' do componente
+  const produtoFormatado = {
+    ...produto,
+    produto_variacoes: produto.produto_variacoes?.map((v: any) => ({
+      ...v,
+      stock: v.estoque
+    }))
+  }
+
+  return <PaginaProduto produto={produtoFormatado} />
 }
