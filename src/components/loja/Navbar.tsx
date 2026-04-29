@@ -1,62 +1,78 @@
 'use client'
 
-import Link from 'next/link'
-import { ShoppingBag, Menu, X } from 'lucide-react'
 import { useState } from 'react'
-import type { ConfiguracoesLoja } from '@/types'
+import Link from 'next/link'
+import { ShoppingCart, Menu, X, Search } from 'lucide-react'
 
-export default function LojaNavbar({ config }: { config: ConfiguracoesLoja | null }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+export default function Navbar() {
+  const [menuAberto, setMenuAberto] = useState(false)
 
   return (
-    <header className="bg-white border-b border-zinc-100 sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-zinc-950 tracking-widest">
-          {config?.nome_loja ?? 'VERSAR'}
-        </Link>
+    <header className="sticky top-0 z-50 bg-white border-b border-zinc-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link href="/" className="font-bold text-xl tracking-widest text-zinc-900 hover:text-zinc-600 transition-colors">
+            VERSAR
+          </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-zinc-600 hover:text-zinc-950 text-sm transition-colors">
-            Início
-          </Link>
-          <Link href="/#produtos" className="text-zinc-600 hover:text-zinc-950 text-sm transition-colors">
-            Produtos
-          </Link>
-          {config?.whatsapp && (
-            <a
-              href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm hover:bg-zinc-800 transition-colors"
+          {/* Nav Desktop */}
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="/" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+              Início
+            </Link>
+            <Link href="/produtos" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+              Produtos
+            </Link>
+          </nav>
+
+          {/* Ações */}
+          <div className="flex items-center gap-3">
+            <button
+              className="p-2 text-zinc-600 hover:text-zinc-900 transition-colors"
+              aria-label="Pesquisar"
             >
-              Fale conosco
-            </a>
-          )}
-        </nav>
+              <Search className="w-5 h-5" />
+            </button>
+            <Link
+              href="/carrinho"
+              className="p-2 text-zinc-600 hover:text-zinc-900 transition-colors relative"
+              aria-label="Carrinho"
+            >
+              <ShoppingCart className="w-5 h-5" />
+            </Link>
 
-        <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-zinc-950">
-          {menuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+            {/* Menu Mobile */}
+            <button
+              className="md:hidden p-2 text-zinc-600 hover:text-zinc-900"
+              onClick={() => setMenuAberto(!menuAberto)}
+              aria-label="Menu"
+            >
+              {menuAberto ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {menuOpen && (
-        <div className="md:hidden border-t border-zinc-100 bg-white px-4 py-4 space-y-3">
-          <Link href="/" onClick={() => setMenuOpen(false)} className="block text-zinc-600 text-sm">
-            Início
-          </Link>
-          <Link href="/#produtos" onClick={() => setMenuOpen(false)} className="block text-zinc-600 text-sm">
-            Produtos
-          </Link>
-          {config?.whatsapp && (
-            <a 
-              href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm text-center"
+      {/* Menu Mobile Dropdown */}
+      {menuAberto && (
+        <div className="md:hidden border-t border-zinc-100 bg-white">
+          <nav className="px-4 py-4 space-y-3">
+            <Link
+              href="/"
+              className="block text-sm font-medium text-zinc-700 hover:text-zinc-900 py-2"
+              onClick={() => setMenuAberto(false)}
             >
-              Fale conosco
-            </a>
-          )}
+              Início
+            </Link>
+            <Link
+              href="/produtos"
+              className="block text-sm font-medium text-zinc-700 hover:text-zinc-900 py-2"
+              onClick={() => setMenuAberto(false)}
+            >
+              Produtos
+            </Link>
+          </nav>
         </div>
       )}
     </header>
