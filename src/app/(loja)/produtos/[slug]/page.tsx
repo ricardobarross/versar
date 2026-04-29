@@ -2,19 +2,48 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import PaginaProduto from '@/components/loja/PaginaProduto'
 
-export default async function ProdutoPage({ params }: { params: { slug: string } }) {
+export const dynamic = 'force-dynamic'
+
+interface PageProps {
+  params: {
+    slug: string
+  }
+}
+
+export default async function Page({ params }: PageProps) {
   const supabase = createClient()
 
-  const { data: produto } = await supabase
+  // O SEGREDO ESTÁ AQUI: 
+  // Precisamos incluir 'produto_fotos(*)' na seleção para que o array de fotos não venha vazio.
+  const { data: produto, error } = await supabase
     .from('produtos')
-    .select('*, produto_fotos(*), produto_variacoes(*), categorias(nome)')
+    .select(`
+      *,
+      categorias (
+        id,
+        nome,
+        slug
+      ),
+      produto_fotos (
+        id,
+        url,
+        principal
+      ),
+      produto_variacoes (
+        id,
+        cor,
+        tamanho,
+        stock
+      )
+    `)
     .eq('slug', params.slug)
     .eq('ativo', true)
     .single()
 
-  if (!produto) notFound()
+  if (error || !produto) {
+    console.error('Erro ao buscar produto:', error)
+    notFound()
+  }
 
-  const { data: config } = await supabase.from('configuracoes_loja').select('whatsapp, nome_loja').single()
-
-  return <PaginaProduto produto={produto} whatsapp={config?.whatsapp ?? ''} />
+  return <PaginaProduto produto={produto} />
 }
