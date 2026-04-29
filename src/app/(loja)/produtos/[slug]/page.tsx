@@ -9,36 +9,38 @@ interface PageProps {
 }
 
 export default async function Page({ params }: PageProps) {
-  // 1. Aguarda os parâmetros (Obrigatório no Next.js 15)
+  // 1. Aguarda o slug (obrigatório no Next.js 15)
   const { slug } = await params
   const supabase = createClient()
 
-  // 2. Busca o produto (Garante que os nomes das tabelas batem com o seu print)
+  // 2. Consulta usando os nomes exatos das suas colunas
   const { data: produto, error } = await supabase
     .from('produtos')
     .select(`
       *,
       categorias (id, nome, slug),
-      produto_fotos (id, url, principal),
+      produto_fotos (id, url, ordem),
       produto_variacoes (id, cor, tamanho, estoque)
     `)
     .eq('slug', slug)
     .eq('ativo', true)
     .single()
 
-  // 3. Se houver erro ou não achar o slug exato, dá 404
+  // 3. Tratamento de erro/404
   if (error || !produto) {
-    console.error('Erro Supabase:', error?.message)
+    console.error('Erro na busca:', error?.message)
     notFound()
   }
 
-  // 4. Formata os dados: transforma 'estoque' do banco em 'stock' para o componente
+  // 4. Tradução de dados para o componente visual
   const produtoFormatado = {
     ...produto,
+    // Converte 'estoque' para 'stock' e garante que as fotos seguem a 'ordem'
+    produto_fotos: produto.produto_fotos?.sort((a: any, b: any) => a.ordem - b.ordem) || [],
     produto_variacoes: produto.produto_variacoes?.map((v: any) => ({
       ...v,
-      stock: v.estoque // Converte o nome da coluna para não dar erro na tela
-    }))
+      stock: v.estoque 
+    })) || []
   }
 
   return <PaginaProduto produto={produtoFormatado} />
