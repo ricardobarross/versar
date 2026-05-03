@@ -43,10 +43,8 @@ export default function ConfiguracoesPage() {
   async function handleUpload(file: File, tipo: 'logo' | 'banner') {
     const ext = file.name.split('.').pop()
     const path = `${tipo}/${Date.now()}.${ext}`
-
     const { error } = await supabase.storage.from('versar-fotos').upload(path, file, { upsert: true })
     if (error) { setErro(error.message); return }
-
     const { data } = supabase.storage.from('versar-fotos').getPublicUrl(path)
     if (tipo === 'logo') setLogoUrl(data.publicUrl)
     else setBannerUrl(data.publicUrl)
@@ -74,7 +72,6 @@ export default function ConfiguracoesPage() {
       : await supabase.from('configuracoes_loja').insert(dados)
 
     if (error) { setErro(error.message); setSalvando(false); return }
-
     setSucesso(true)
     setSalvando(false)
     setTimeout(() => setSucesso(false), 3000)
@@ -84,21 +81,21 @@ export default function ConfiguracoesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">Configurações da loja</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8">Configurações da loja</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 max-w-2xl">
 
         {/* Identidade */}
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800 space-y-4">
           <h2 className="text-white font-semibold">Identidade da loja</h2>
-
           <div>
             <label className="block text-zinc-400 text-sm mb-2">Nome da loja</label>
-            <input type="text" value={nomeLoja} onChange={e => setNomeLoja(e.target.value)}
+            <input
+              type="text" value={nomeLoja} onChange={e => setNomeLoja(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-              placeholder="VERSAR" />
+              placeholder="VERSAR"
+            />
           </div>
-
           <div>
             <label className="block text-zinc-400 text-sm mb-2">Logo</label>
             {logoUrl && (
@@ -113,50 +110,56 @@ export default function ConfiguracoesPage() {
         </div>
 
         {/* Contato */}
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800 space-y-4">
           <h2 className="text-white font-semibold">Contato e redes sociais</h2>
-
           <div>
             <label className="block text-zinc-400 text-sm mb-2">WhatsApp (com código do país)</label>
-            <input type="text" value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
+            <input
+              type="text" value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-              placeholder="+5581996455218" />
+              placeholder="+5581996455218"
+            />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          {/* Instagram e Facebook — 1 coluna mobile, 2 desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-zinc-400 text-sm mb-2">Instagram</label>
-              <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)}
+              <input
+                type="text" value={instagram} onChange={e => setInstagram(e.target.value)}
                 className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-                placeholder="@versar" />
+                placeholder="@versar"
+              />
             </div>
             <div>
               <label className="block text-zinc-400 text-sm mb-2">Facebook</label>
-              <input type="text" value={facebook} onChange={e => setFacebook(e.target.value)}
+              <input
+                type="text" value={facebook} onChange={e => setFacebook(e.target.value)}
                 className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-                placeholder="facebook.com/versar" />
+                placeholder="facebook.com/versar"
+              />
             </div>
           </div>
         </div>
 
         {/* Banner */}
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800 space-y-4">
           <h2 className="text-white font-semibold">Banner da loja</h2>
-
           <div>
             <label className="block text-zinc-400 text-sm mb-2">Título do banner</label>
-            <input type="text" value={bannerTitulo} onChange={e => setBannerTitulo(e.target.value)}
+            <input
+              type="text" value={bannerTitulo} onChange={e => setBannerTitulo(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-              placeholder="Moda masculina de qualidade" />
+              placeholder="Moda masculina de qualidade"
+            />
           </div>
-
           <div>
             <label className="block text-zinc-400 text-sm mb-2">Subtítulo do banner</label>
-            <input type="text" value={bannerSubtitulo} onChange={e => setBannerSubtitulo(e.target.value)}
+            <input
+              type="text" value={bannerSubtitulo} onChange={e => setBannerSubtitulo(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-              placeholder="Estilo que faz a diferença" />
+              placeholder="Estilo que faz a diferença"
+            />
           </div>
-
           <div>
             <label className="block text-zinc-400 text-sm mb-2">Imagem do banner</label>
             {bannerUrl && (
@@ -170,11 +173,19 @@ export default function ConfiguracoesPage() {
           </div>
         </div>
 
-        {erro && <p className="text-red-400 text-sm bg-red-950 rounded-lg px-4 py-3">{erro}</p>}
-        {sucesso && <p className="text-green-400 text-sm bg-green-950 rounded-lg px-4 py-3">Configurações salvas com sucesso!</p>}
+        {erro && (
+          <p className="text-red-400 text-sm bg-red-950 rounded-lg px-4 py-3">{erro}</p>
+        )}
+        {sucesso && (
+          <p className="text-green-400 text-sm bg-green-950 rounded-lg px-4 py-3">
+            Configurações salvas com sucesso!
+          </p>
+        )}
 
-        <button type="submit" disabled={salvando}
-          className="bg-white text-black font-semibold px-8 py-3 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50">
+        <button
+          type="submit" disabled={salvando}
+          className="w-full sm:w-auto bg-white text-black font-semibold px-8 py-3 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+        >
           {salvando ? 'Salvando...' : 'Salvar configurações'}
         </button>
       </form>

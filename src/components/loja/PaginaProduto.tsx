@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingCart, ChevronLeft, ChevronRight, Heart } from 'lucide-react'
+import { useCarrinho } from '@/components/loja/CarrinhoContext'
 
 interface Foto {
   id: string
@@ -40,7 +41,6 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
   const fotos = produto.produto_fotos ?? []
   const variacoes = produto.produto_variacoes ?? []
 
-  // ordenar: principal primeiro
   const fotosOrdenadas = [...fotos].sort((a, b) => (b.principal ? 1 : 0) - (a.principal ? 1 : 0))
 
   const [fotoAtiva, setFotoAtiva] = useState(0)
@@ -49,16 +49,16 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
   const [quantidade, setQuantidade] = useState(1)
   const [adicionado, setAdicionado] = useState(false)
 
+  const { adicionarItem } = useCarrinho()
+
   const temPromocao = produto.preco_promocional && produto.preco_promocional < produto.preco
   const desconto = temPromocao
     ? Math.round(((produto.preco - produto.preco_promocional!) / produto.preco) * 100)
     : 0
 
-  // Cores e tamanhos únicos
   const cores = [...new Set(variacoes.filter((v) => v.cor).map((v) => v.cor!))]
   const tamanhos = [...new Set(variacoes.filter((v) => v.tamanho).map((v) => v.tamanho!))]
 
-  // Stock disponível para seleção atual
   const variacaoAtual = variacoes.find(
     (v) =>
       (cores.length === 0 || v.cor === corSelecionada) &&
@@ -67,7 +67,6 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
   const stockDisponivel = variacaoAtual?.stock ?? (variacoes.length === 0 ? 99 : 0)
 
   function handleAdicionarCarrinho() {
-    // Validações
     if (cores.length > 0 && !corSelecionada) {
       alert('Por favor, selecione uma cor.')
       return
@@ -81,7 +80,22 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
       return
     }
 
-    // Aqui integrarias com o contexto de carrinho
+    const variacaoId = variacaoAtual?.id ?? variacoes[0]?.id ?? produto.id
+    const variacaoNome = [corSelecionada, tamanhoSelecionado].filter(Boolean).join(' / ') || 'Único'
+
+    for (let i = 0; i < quantidade; i++) {
+      adicionarItem({
+        variacaoId,
+        produtoId: produto.id,
+        produtoSlug: produto.slug,
+        produtoNome: produto.nome,
+        variacaoNome,
+        preco: temPromocao ? produto.preco_promocional! : produto.preco,
+        foto: fotosOrdenadas[0]?.url,
+        estoqueMax: stockDisponivel,
+      })
+    }
+
     setAdicionado(true)
     setTimeout(() => setAdicionado(false), 2500)
   }
@@ -97,30 +111,33 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-zinc-500 mb-8">
-          <Link href="/" className="hover:text-zinc-900 transition-colors">Início</Link>
+        <nav className="flex items-center gap-2 text-sm text-zinc-500 mb-6 sm:mb-8 overflow-x-auto whitespace-nowrap pb-1">
+          <Link href="/" className="hover:text-zinc-900 transition-colors shrink-0">Início</Link>
           <span>/</span>
-          <Link href="/produtos" className="hover:text-zinc-900 transition-colors">Produtos</Link>
+          <Link href="/produtos" className="hover:text-zinc-900 transition-colors shrink-0">Produtos</Link>
           {produto.categorias && (
             <>
               <span>/</span>
               <Link
                 href={`/categoria/${produto.categorias.slug}`}
-                className="hover:text-zinc-900 transition-colors"
+                className="hover:text-zinc-900 transition-colors shrink-0"
               >
                 {produto.categorias.nome}
               </Link>
             </>
           )}
           <span>/</span>
-          <span className="text-zinc-900 font-medium truncate max-w-[200px]">{produto.nome}</span>
+          <span className="text-zinc-900 font-medium truncate max-w-[160px] sm:max-w-[200px]">{produto.nome}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20">
+
           {/* Galeria de Fotos */}
-          <div className="space-y-4">
+          <div className="space-y-3">
+
             {/* Foto Principal */}
             <div className="relative aspect-[3/4] bg-zinc-100 overflow-hidden group">
               {fotoAtual ? (
@@ -140,24 +157,40 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
                 </div>
               )}
 
-              {/* Navegação fotos */}
+              {/* Navegação fotos — sempre visível em touch, hover no desktop */}
               {fotosOrdenadas.length > 1 && (
                 <>
                   <button
                     onClick={() => navegarFoto('prev')}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow transition-opacity opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                     aria-label="Foto anterior"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => navegarFoto('next')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow transition-opacity opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                     aria-label="Próxima foto"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </>
+              )}
+
+              {/* Indicador de foto em mobile */}
+              {fotosOrdenadas.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 lg:hidden">
+                  {fotosOrdenadas.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setFotoAtiva(idx)}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                        idx === fotoAtiva ? 'bg-white' : 'bg-white/50'
+                      }`}
+                      aria-label={`Foto ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               )}
 
               {/* Badge promoção */}
@@ -168,14 +201,14 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
               )}
             </div>
 
-            {/* Miniaturas */}
+            {/* Miniaturas — scroll horizontal mobile, grid no desktop */}
             {fotosOrdenadas.length > 1 && (
-              <div className="grid grid-cols-5 gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 md:grid md:grid-cols-5 md:overflow-visible scrollbar-hide">
                 {fotosOrdenadas.map((foto, idx) => (
                   <button
                     key={foto.id}
                     onClick={() => setFotoAtiva(idx)}
-                    className={`aspect-square overflow-hidden border-2 transition-colors ${
+                    className={`flex-shrink-0 w-16 h-16 md:w-auto md:h-auto md:aspect-square overflow-hidden border-2 transition-colors ${
                       idx === fotoAtiva ? 'border-zinc-900' : 'border-transparent hover:border-zinc-300'
                     }`}
                   >
@@ -193,7 +226,8 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
           </div>
 
           {/* Informações do Produto */}
-          <div className="lg:sticky lg:top-8 lg:self-start space-y-8">
+          <div className="lg:sticky lg:top-8 lg:self-start space-y-6 sm:space-y-8">
+
             {/* Nome e Preço */}
             <div>
               {produto.categorias && (
@@ -204,18 +238,18 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
                   {produto.categorias.nome}
                 </Link>
               )}
-              <h1 className="text-3xl font-bold text-zinc-900 mt-2 mb-4">{produto.nome}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 mt-2 mb-4">{produto.nome}</h1>
 
-              <div className="flex items-baseline gap-3">
+              <div className="flex items-baseline gap-3 flex-wrap">
                 {temPromocao ? (
                   <>
-                    <span className="text-3xl font-bold text-red-600">
+                    <span className="text-2xl sm:text-3xl font-bold text-red-600">
                       {Number(produto.preco_promocional).toLocaleString('pt-PT', {
                         style: 'currency',
                         currency: 'EUR',
                       })}
                     </span>
-                    <span className="text-xl text-zinc-400 line-through">
+                    <span className="text-lg sm:text-xl text-zinc-400 line-through">
                       {Number(produto.preco).toLocaleString('pt-PT', {
                         style: 'currency',
                         currency: 'EUR',
@@ -226,7 +260,7 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
                     </span>
                   </>
                 ) : (
-                  <span className="text-3xl font-bold text-zinc-900">
+                  <span className="text-2xl sm:text-3xl font-bold text-zinc-900">
                     {Number(produto.preco).toLocaleString('pt-PT', {
                       style: 'currency',
                       currency: 'EUR',
@@ -242,14 +276,15 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
             {cores.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-zinc-700 mb-3">
-                  Cor: {corSelecionada && <span className="font-normal text-zinc-500">{corSelecionada}</span>}
+                  Cor:{' '}
+                  {corSelecionada && <span className="font-normal text-zinc-500">{corSelecionada}</span>}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {cores.map((cor) => (
                     <button
                       key={cor}
                       onClick={() => setCorSelecionada(cor)}
-                      className={`px-4 py-2 border text-sm font-medium transition-colors ${
+                      className={`px-4 py-2.5 min-h-[44px] border text-sm font-medium transition-colors ${
                         corSelecionada === cor
                           ? 'border-zinc-900 bg-zinc-900 text-white'
                           : 'border-zinc-300 text-zinc-700 hover:border-zinc-900'
@@ -266,7 +301,8 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
             {tamanhos.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-zinc-700 mb-3">
-                  Tamanho: {tamanhoSelecionado && <span className="font-normal text-zinc-500">{tamanhoSelecionado}</span>}
+                  Tamanho:{' '}
+                  {tamanhoSelecionado && <span className="font-normal text-zinc-500">{tamanhoSelecionado}</span>}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {tamanhos.map((tam) => {
@@ -308,14 +344,14 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
                 <div className="flex items-center border border-zinc-300">
                   <button
                     onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
-                    className="w-10 h-10 flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    className="w-11 h-11 flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors text-lg"
                   >
                     −
                   </button>
                   <span className="w-10 text-center font-semibold text-zinc-900">{quantidade}</span>
                   <button
                     onClick={() => setQuantidade((q) => Math.min(stockDisponivel, q + 1))}
-                    className="w-10 h-10 flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    className="w-11 h-11 flex items-center justify-center text-zinc-600 hover:bg-zinc-50 transition-colors text-lg"
                   >
                     +
                   </button>
@@ -333,19 +369,19 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
               <button
                 onClick={handleAdicionarCarrinho}
                 disabled={stockDisponivel === 0}
-                className={`flex-1 flex items-center justify-center gap-2 py-4 font-bold text-sm tracking-wide transition-all ${
+                className={`flex-1 flex items-center justify-center gap-2 py-4 font-bold text-sm tracking-wide transition-all min-h-[52px] ${
                   stockDisponivel === 0
                     ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                     : adicionado
                     ? 'bg-green-600 text-white'
-                    : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-700 active:scale-[0.98]'
                 }`}
               >
                 <ShoppingCart className="w-5 h-5" />
                 {adicionado ? 'Adicionado! ✓' : stockDisponivel === 0 ? 'Sem Stock' : 'Adicionar ao Carrinho'}
               </button>
               <button
-                className="w-14 h-14 flex items-center justify-center border border-zinc-300 hover:border-zinc-900 transition-colors"
+                className="w-14 h-14 flex items-center justify-center border border-zinc-300 hover:border-zinc-900 transition-colors active:scale-[0.97]"
                 aria-label="Adicionar aos favoritos"
               >
                 <Heart className="w-5 h-5 text-zinc-600" />
@@ -378,6 +414,7 @@ export default function PaginaProduto({ produto }: PaginaProdutoProps) {
                 </div>
               ))}
             </div>
+
           </div>
         </div>
       </div>

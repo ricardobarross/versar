@@ -23,9 +23,10 @@ export default async function RelatoriosPage() {
 
   const totalMes = pedidosMes?.reduce((acc, p) => acc + p.total, 0) ?? 0
   const totalMesPassado = pedidosMesPassado?.reduce((acc, p) => acc + p.total, 0) ?? 0
-  const crescimento = totalMesPassado > 0 ? ((totalMes - totalMesPassado) / totalMesPassado * 100).toFixed(1) : null
+  const crescimento = totalMesPassado > 0
+    ? ((totalMes - totalMesPassado) / totalMesPassado * 100).toFixed(1)
+    : null
 
-  // Agrupar produtos mais vendidos
   const vendas: Record<string, { nome: string; quantidade: number; total: number }> = {}
   produtosMaisVendidos?.forEach((item: any) => {
     const nome = item.produtos?.nome ?? 'Desconhecido'
@@ -42,95 +43,98 @@ export default async function RelatoriosPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">Relatórios</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8">Relatórios</h1>
 
-      {/* Cards resumo */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-          <div className="bg-green-500 w-10 h-10 rounded-lg flex items-center justify-center mb-4">
-            <TrendingUp size={20} className="text-white" />
+      {/* Cards resumo — 2 colunas mobile, 4 desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800">
+          <div className="bg-green-500 w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
+            <TrendingUp size={18} className="text-white" />
           </div>
-          <p className="text-zinc-400 text-sm">Faturamento este mês</p>
-          <p className="text-white text-2xl font-bold mt-1">
+          <p className="text-zinc-400 text-xs sm:text-sm">Faturamento este mês</p>
+          <p className="text-white text-lg sm:text-2xl font-bold mt-1">
             R$ {totalMes.toFixed(2).replace('.', ',')}
           </p>
           {crescimento && (
-            <p className={`text-sm mt-1 ${parseFloat(crescimento) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-xs sm:text-sm mt-1 ${parseFloat(crescimento) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {parseFloat(crescimento) >= 0 ? '+' : ''}{crescimento}% vs mês passado
             </p>
           )}
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-          <div className="bg-blue-500 w-10 h-10 rounded-lg flex items-center justify-center mb-4">
-            <ShoppingBag size={20} className="text-white" />
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800">
+          <div className="bg-blue-500 w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
+            <ShoppingBag size={18} className="text-white" />
           </div>
-          <p className="text-zinc-400 text-sm">Pedidos este mês</p>
-          <p className="text-white text-2xl font-bold mt-1">{pedidosMes?.length ?? 0}</p>
+          <p className="text-zinc-400 text-xs sm:text-sm">Pedidos este mês</p>
+          <p className="text-white text-lg sm:text-2xl font-bold mt-1">{pedidosMes?.length ?? 0}</p>
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-          <div className="bg-orange-500 w-10 h-10 rounded-lg flex items-center justify-center mb-4">
-            <TrendingUp size={20} className="text-white" />
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800">
+          <div className="bg-orange-500 w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
+            <TrendingUp size={18} className="text-white" />
           </div>
-          <p className="text-zinc-400 text-sm">Ticket médio</p>
-          <p className="text-white text-2xl font-bold mt-1">
+          <p className="text-zinc-400 text-xs sm:text-sm">Ticket médio</p>
+          <p className="text-white text-lg sm:text-2xl font-bold mt-1">
             R$ {pedidosMes && pedidosMes.length > 0
               ? (totalMes / pedidosMes.length).toFixed(2).replace('.', ',')
               : '0,00'}
           </p>
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-          <div className="bg-purple-500 w-10 h-10 rounded-lg flex items-center justify-center mb-4">
-            <Users size={20} className="text-white" />
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800">
+          <div className="bg-purple-500 w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
+            <Users size={18} className="text-white" />
           </div>
-          <p className="text-zinc-400 text-sm">Total de clientes</p>
-          <p className="text-white text-2xl font-bold mt-1">{totalClientes ?? 0}</p>
+          <p className="text-zinc-400 text-xs sm:text-sm">Total de clientes</p>
+          <p className="text-white text-lg sm:text-2xl font-bold mt-1">{totalClientes ?? 0}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      {/* Gráficos — 1 coluna mobile, 2 desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Produtos mais vendidos */}
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-          <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-            <Package size={18} /> Produtos mais vendidos
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800">
+          <h2 className="text-white font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <Package size={16} /> Produtos mais vendidos
           </h2>
-          {ranking.length === 0 && (
+          {ranking.length === 0 ? (
             <p className="text-zinc-500 text-sm">Nenhuma venda registrada ainda.</p>
-          )}
-          <div className="space-y-3">
-            {ranking.map((item, index) => (
-              <div key={item.nome} className="flex items-center gap-3">
-                <span className="text-zinc-600 text-sm w-5">{index + 1}.</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm truncate">{item.nome}</p>
-                  <p className="text-zinc-500 text-xs">{item.quantidade} unidades</p>
+          ) : (
+            <div className="space-y-3">
+              {ranking.map((item, index) => (
+                <div key={item.nome} className="flex items-center gap-3">
+                  <span className="text-zinc-600 text-sm w-5 flex-shrink-0">{index + 1}.</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm truncate">{item.nome}</p>
+                    <p className="text-zinc-500 text-xs">{item.quantidade} unidades</p>
+                  </div>
+                  <span className="text-zinc-300 text-sm font-medium flex-shrink-0">
+                    R$ {item.total.toFixed(2).replace('.', ',')}
+                  </span>
                 </div>
-                <span className="text-zinc-300 text-sm font-medium">
-                  R$ {item.total.toFixed(2).replace('.', ',')}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Status dos pedidos */}
-        <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-          <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-            <ShoppingBag size={18} /> Pedidos por status (este mês)
+        <div className="bg-zinc-900 rounded-2xl p-4 sm:p-6 border border-zinc-800">
+          <h2 className="text-white font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <ShoppingBag size={16} /> Pedidos por status (este mês)
           </h2>
-          {Object.keys(statusCount).length === 0 && (
+          {Object.keys(statusCount).length === 0 ? (
             <p className="text-zinc-500 text-sm">Nenhum pedido este mês.</p>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(statusCount).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between">
+                  <span className="text-zinc-300 text-sm capitalize">{status}</span>
+                  <span className="text-white font-semibold">{count}</span>
+                </div>
+              ))}
+            </div>
           )}
-          <div className="space-y-3">
-            {Object.entries(statusCount).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between">
-                <span className="text-zinc-300 text-sm capitalize">{status}</span>
-                <span className="text-white font-semibold">{count}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
