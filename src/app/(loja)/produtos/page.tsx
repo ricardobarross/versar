@@ -1,83 +1,68 @@
-﻿import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+﻿import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
-import type { Database } from '@/types'
 
-export const metadata: Metadata = {
-  title: 'Produtos',
-}
-
-async function getProdutos() {
-  const supabase = createServerComponentClient<Database>({ cookies })
-  const { data } = await supabase
-    .from('produtos')
-    .select(`
-      id, nome, slug, preco, preco_promocional, destaque,
-      produto_fotos (url, principal),
-      categorias (id, nome, slug)
-    `)
-    .eq('ativo', true)
-    .order('created_at', { ascending: false })
-  return data ?? []
-}
-
-async function getCategorias() {
-  const supabase = createServerComponentClient<Database>({ cookies })
-  const { data } = await supabase.from('categorias').select('id, nome, slug').eq('ativo', true).order('nome')
-  return data ?? []
-}
+export const metadata: Metadata = { title: 'Produtos' }
+export const dynamic = 'force-dynamic'
 
 export default async function ProdutosPage() {
-  const [produtos, categorias] = await Promise.all([getProdutos(), getCategorias()])
+  const supabase = createClient()
+
+  const [{ data: produtos }, { data: categorias }] = await Promise.all([
+    supabase
+      .from('produtos')
+      .select(`id, nome, slug, preco, preco_promocional, destaque, produto_fotos (url, ordem), categorias (id, nome, slug)`)
+      .eq('ativo', true)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('categorias')
+      .select('id, nome, slug')
+      .eq('ativo', true)
+      .order('nome'),
+  ])
+
+  const lista = produtos ?? []
+  const cats = categorias ?? []
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-zinc-900">Produtos</h1>
-        <p className="text-zinc-500 mt-1">{produtos.length} produto{produtos.length !== 1 ? 's' : ''}</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">Produtos</h1>
+        <p className="text-zinc-500 mt-1 text-sm">{lista.length} produto{lista.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {categorias.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8 pb-6 border-b border-zinc-200">
-          <Link href="/produtos" className="px-4 py-2 text-sm font-medium border border-zinc-900 bg-zinc-900 text-white">
+      {cats.length > 0 && (
+        <div className="flex gap-2 mb-6 sm:mb-8 pb-6 border-b border-zinc-200 overflow-x-auto scrollbar-hide">
+          <Link href="/produtos" className="flex-shrink-0 px-4 py-2 text-sm font-medium border border-zinc-900 bg-zinc-900 text-white">
             Todos
           </Link>
-          {categorias.map((cat) => (
-            <Link
-              key={cat.id}
-              href={`/categoria/${cat.slug}`}
-              className="px-4 py-2 text-sm font-medium border border-zinc-300 text-zinc-600 hover:border-zinc-900 transition-colors"
-            >
+          {cats.map(cat => (
+            <Link key={cat.id} href={`/categoria/${cat.slug}`} className="flex-shrink-0 px-4 py-2 text-sm font-medium border border-zinc-300 text-zinc-600 hover:border-zinc-900 transition-colors">
               {cat.nome}
             </Link>
           ))}
         </div>
       )}
 
-      {produtos.length === 0 ? (
+      {lista.length === 0 && (
         <div className="text-center py-20 text-zinc-400">
-          <p className="text-xl font-medium mb-2">Nenhum produto encontrado</p>
+          <p className="text-xl font-medium">Nenhum produto encontrado</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {produtos.map((produto) => {
-            const fotos = produto.produto_fotos as any[]
-            const foto = fotos?.find((f: any) => f.principal)?.url ?? fotos?.[0]?.url ?? null
+      )}
+
+      {lista.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {lista.map(produto => {
+            const fotos = (produto.produto_fotos as any[]) ?? []
+            const foto = fotos.sort((a, b) => a.ordem - b.ordem)[0]?.url ?? null
             const temPromocao = produto.preco_promocional && produto.preco_promocional < produto.preco
 
             return (
               <Link key={produto.id} href={`/produtos/${produto.slug}`} className="group">
-                <div className="aspect-[3/4] bg-zinc-100 overflow-hidden mb-4 relative">
+                <div className="aspect-[3/4] bg-zinc-100 overflow-hidden mb-3 relative">
                   {foto ? (
-                    <Image
-                      src={foto}
-                      alt={produto.nome}
-                      width={400}
-                      height={533}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <Image src={foto} alt={produto.nome} width={400} height={533} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-300">
                       <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,20 +75,14 @@ export default async function ProdutosPage() {
                   )}
                 </div>
                 <h3 className="font-medium text-zinc-900 text-sm line-clamp-2">{produto.nome}</h3>
-                <div className="mt-1.5 flex items-center gap-2">
+                <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                   {temPromocao ? (
                     <>
-                      <span className="font-bold text-red-600 text-sm">
-                        {Number(produto.preco_promocional).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
-                      </span>
-                      <span className="text-xs text-zinc-400 line-through">
-                        {Number(produto.preco).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
-                      </span>
+                      <span className="font-bold text-red-600 text-sm">R$ {Number(produto.preco_promocional).toFixed(2).replace('.', ',')}</span>
+                      <span className="text-xs text-zinc-400 line-through">R$ {Number(produto.preco).toFixed(2).replace('.', ',')}</span>
                     </>
                   ) : (
-                    <span className="font-bold text-zinc-900 text-sm">
-                      {Number(produto.preco).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
-                    </span>
+                    <span className="font-bold text-zinc-900 text-sm">R$ {Number(produto.preco).toFixed(2).replace('.', ',')}</span>
                   )}
                 </div>
               </Link>
