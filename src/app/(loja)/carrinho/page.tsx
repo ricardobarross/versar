@@ -3,6 +3,7 @@
 import { useCarrinho } from '@/components/loja/CarrinhoContext'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Trash2, ShoppingBag } from 'lucide-react'
 
 function formatBRL(value: number) {
@@ -11,6 +12,7 @@ function formatBRL(value: number) {
 
 export default function CarrinhoPage() {
   const { itens, totalItens, totalPreco, removerItem, alterarQuantidade, limparCarrinho } = useCarrinho()
+  const router = useRouter()
 
   if (itens.length === 0) {
     return (
@@ -75,7 +77,10 @@ export default function CarrinhoPage() {
             <p className="text-zinc-500 text-sm">Total</p>
             <p className="text-3xl font-bold text-zinc-900">{formatBRL(totalPreco)}</p>
             <p className="text-xs text-zinc-400 mt-1">Frete calculado no checkout</p>
-            <button className="mt-3 w-full sm:w-auto bg-zinc-900 hover:bg-zinc-700 text-white font-semibold px-8 py-3 rounded-full transition-colors">
+            <button
+              onClick={() => router.push('/checkout')}
+              className="mt-3 w-full sm:w-auto bg-zinc-900 hover:bg-zinc-700 text-white font-semibold px-8 py-3 rounded-full transition-colors"
+            >
               Finalizar pedido
             </button>
           </div>
