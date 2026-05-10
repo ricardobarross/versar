@@ -1,13 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
-import ClientesClient from './ClientesClient'
+import ProdutosClient from './ProdutosClient'
 
-export default async function ClientesPage() {
+export default async function ProdutosPage() {
   const supabase = createClient()
 
-  const { data: clientes } = await supabase
-    .from('clientes')
-    .select('id, nome, whatsapp, email, cidade, estado')
-    .order('nome')
+  const { data: produtos } = await supabase
+    .from('produtos')
+    .select(`
+      *,
+      produto_fotos (url, ordem),
+      produto_variacoes (estoque),
+      categorias (nome)
+    `)
+    .order('created_at', { ascending: false })
 
-  return <ClientesClient clientes={clientes ?? []} />
+  return <ProdutosClient produtos={produtos ?? []} />
 }
