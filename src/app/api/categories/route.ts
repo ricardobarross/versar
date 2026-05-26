@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/app/api/admin/auth/route";
@@ -46,16 +47,10 @@ export async function GET(req: NextRequest) {
       .order("name", { ascending: true });
 
     if (error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, categories: data as Category[] },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, categories: data as Category[] }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Erro ao listar categorias." },
@@ -92,16 +87,10 @@ export async function POST(req: NextRequest) {
       .single<Category>();
 
     if (error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, category: data },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, category: data }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Erro ao criar categoria." },
@@ -140,16 +129,61 @@ export async function PUT(req: NextRequest) {
       .single<Category>();
 
     if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, category: data }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Erro ao atualizar categoria." },
+      { status: error.status || 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await requireAdmin(req);
+
+    const id = req.nextUrl.searchParams.get("id");
+
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
+        { success: false, error: "ID da categoria é obrigatório." },
+        { status: 400 }
       );
     }
 
+    const supabase = createSupabaseServerClient();
+
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
     return NextResponse.json(
-      { success: true, category: data },
+      { success: true, message: "Categoria removida com sucesso." },
       { status: 200 }
     );
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error
+      { success: false, error: error.message || "Erro ao remover categoria." },
+      { status: error.status || 500 }
+    );
+  }
+}
+
+export async function OPTIONS() {
+  return NextResponse.json(
+    { success: true },
+    {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Admin-Token",
+      },
+    }
+  );
+}
