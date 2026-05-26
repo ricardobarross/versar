@@ -38,18 +38,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Verifica a sessão
   const { data: { session } } = await supabase.auth.getSession()
 
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
   const isLoginRoute = request.nextUrl.pathname.startsWith('/auth/login')
 
-  // Se for rota admin e não tiver sessão, manda para o login
   if (isAdminRoute && !session) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Se já estiver logado e tentar ir no login, manda para o admin
   if (isLoginRoute && session) {
     return NextResponse.redirect(new URL('/admin', request.url))
   }
@@ -58,5 +55,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/admin/:path*', '/auth/login'],
 }
