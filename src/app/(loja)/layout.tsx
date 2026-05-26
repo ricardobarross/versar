@@ -4,7 +4,7 @@ import { CarrinhoProvider } from '@/components/loja/CarrinhoContext'
 
 export default async function LojaLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const { data: config } = await supabase.from('configuracoes_loja').select('*').single()
+  const { data: config } = await supabase.from('configuracoes_loja').select('*').maybeSingle()
 
   return (
     <CarrinhoProvider>

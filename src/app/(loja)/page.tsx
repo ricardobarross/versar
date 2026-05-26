@@ -7,7 +7,7 @@ export default async function LojaPage() {
   const supabase = createClient()
 
   const [{ data: config }, { data: produtos }, { data: categorias }] = await Promise.all([
-    supabase.from('configuracoes_loja').select('*').single(),
+    supabase.from('configuracoes_loja').select('*').maybeSingle(),
     supabase.from('produtos')
       .select('*, produto_fotos(*), produto_variacoes(*), categorias(nome)')
       .eq('ativo', true)
