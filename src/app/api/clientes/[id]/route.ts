@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Cria cliente Supabase (server-side)
 function supabaseServer() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,61 +8,42 @@ function supabaseServer() {
   );
 }
 
-// Lista de status permitidos
-const STATUS_VALIDOS = ["novo", "pago", "enviado", "cancelado", "concluido"];
-
 // =====================================
-// GET /api/pedidos/[id]/status
-// Retorna o status atual do pedido
+// GET /api/clientes/[id]
+// Busca cliente por ID
 // =====================================
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
-  if (!id) {
-    return NextResponse.json({ error: "ID inválido." }, { status: 400 });
-  }
-
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from("pedidos")
-    .select("status")
+    .from("clientes")
+    .select("*")
     .eq("id", id)
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Cliente não encontrado." }, { status: 404 });
   }
 
-  return NextResponse.json({ status: data.status });
+  return NextResponse.json(data);
 }
 
 // =====================================
-// PUT /api/pedidos/[id]/status
-// Atualiza o status do pedido
+// PUT /api/clientes/[id]
+// Atualiza cliente
 // =====================================
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   const body = await request.json();
-  const { status } = body;
-
-  if (!status) {
-    return NextResponse.json({ error: "Campo obrigatório: status." }, { status: 400 });
-  }
-
-  if (!STATUS_VALIDOS.includes(status)) {
-    return NextResponse.json(
-      { error: `Status inválido. Permitidos: ${STATUS_VALIDOS.join(", ")}` },
-      { status: 400 }
-    );
-  }
 
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from("pedidos")
+    .from("clientes")
     .update({
-      status,
+      ...body,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -71,12 +51,36 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar status." }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao atualizar cliente." }, { status: 500 });
   }
 
   return NextResponse.json({
     success: true,
-    message: "Status atualizado com sucesso.",
+    message: "Cliente atualizado com sucesso.",
     data,
+  });
+}
+
+// =====================================
+// DELETE /api/clientes/[id]
+// Remove cliente
+// =====================================
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const { id } = params;
+
+  const supabase = supabaseServer();
+
+  const { error } = await supabase
+    .from("clientes")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: "Erro ao apagar cliente." }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: "Cliente removido com sucesso.",
   });
 }

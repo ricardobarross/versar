@@ -55,8 +55,8 @@ export default function PaginaProduto({ produto }: { produto: Produto }) {
     ? Math.round(((produto.preco - produto.preco_promocional!) / produto.preco) * 100)
     : 0
 
-  const cores = [...new Set(variacoes.filter(v => v.cor).map(v => v.cor!))]
-  const tamanhos = [...new Set(variacoes.filter(v => v.tamanho).map(v => v.tamanho!))]
+  const cores = Array.from(new Set(variacoes.filter(v => v.cor).map(v => v.cor!)))
+  const tamanhos = Array.from(new Set(variacoes.filter(v => v.tamanho).map(v => v.tamanho!)))
 
   const variacaoAtual = variacoes.find(
     v => (cores.length === 0 || v.cor === corSelecionada) &&

@@ -9,12 +9,9 @@ function supabaseServer() {
   );
 }
 
-// Lista de status permitidos
-const STATUS_VALIDOS = ["novo", "pago", "enviado", "cancelado", "concluido"];
-
 // =====================================
-// GET /api/pedidos/[id]/status
-// Retorna o status atual do pedido
+// GET /api/pedidos/[id]
+// Busca um pedido com itens
 // =====================================
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
@@ -27,7 +24,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const { data, error } = await supabase
     .from("pedidos")
-    .select("status")
+    .select(`
+      *,
+      pedido_itens (
+        id,
+        produto_id,
+        variacao_id,
+        quantidade,
+        preco_unitario
+      )
+    `)
     .eq("id", id)
     .single();
 
@@ -35,35 +41,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
   }
 
-  return NextResponse.json({ status: data.status });
+  return NextResponse.json(data);
 }
 
 // =====================================
-// PUT /api/pedidos/[id]/status
-// Atualiza o status do pedido
+// PUT /api/pedidos/[id]
+// Atualiza dados do pedido
 // =====================================
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   const body = await request.json();
-  const { status } = body;
-
-  if (!status) {
-    return NextResponse.json({ error: "Campo obrigatório: status." }, { status: 400 });
-  }
-
-  if (!STATUS_VALIDOS.includes(status)) {
-    return NextResponse.json(
-      { error: `Status inválido. Permitidos: ${STATUS_VALIDOS.join(", ")}` },
-      { status: 400 }
-    );
-  }
 
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
     .from("pedidos")
     .update({
-      status,
+      ...body,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -71,12 +65,37 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar status." }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao atualizar pedido." }, { status: 500 });
   }
 
   return NextResponse.json({
     success: true,
-    message: "Status atualizado com sucesso.",
+    message: "Pedido atualizado com sucesso.",
     data,
+  });
+}
+
+// =====================================
+// DELETE /api/pedidos/[id]
+// Remove pedido e seus itens
+// =====================================
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const { id } = params;
+
+  const supabase = supabaseServer();
+
+  // Apagar itens primeiro
+  await supabase.from("pedido_itens").delete().eq("pedido_id", id);
+
+  // Apagar pedido
+  const { error } = await supabase.from("pedidos").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: "Erro ao apagar pedido." }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: "Pedido removido com sucesso.",
   });
 }

@@ -1,0 +1,189 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API da Loja - Ricardo",
+    "version": "1.0.0",
+    "description": "Documentação completa da API do e-commerce."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "paths": {
+    "/api/produtos": {
+      "get": {
+        "summary": "Listar produtos",
+        "tags": ["Produtos"]
+      },
+      "post": {
+        "summary": "Criar produto",
+        "tags": ["Produtos"]
+      }
+    },
+    "/api/produtos/{id}": {
+      "get": {
+        "summary": "Buscar produto por ID",
+        "tags": ["Produtos"]
+      },
+      "put": {
+        "summary": "Atualizar produto",
+        "tags": ["Produtos"]
+      },
+      "delete": {
+        "summary": "Remover produto",
+        "tags": ["Produtos"]
+      }
+    },
+    "/api/destaques": {
+      "get": {
+        "summary": "Listar destaques",
+        "tags": ["Destaques"]
+      },
+      "post": {
+        "summary": "Criar destaque",
+        "tags": ["Destaques"]
+      }
+    },
+    "/api/destaques/{id}": {
+      "delete": {
+        "summary": "Remover destaque",
+        "tags": ["Destaques"]
+      }
+    },
+    "/api/busca": {
+      "get": {
+        "summary": "Busca avançada de produtos",
+        "tags": ["Busca"]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login admin",
+        "tags": ["Autenticação"]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Logout admin",
+        "tags": ["Autenticação"]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Verificar sessão",
+        "tags": ["Autenticação"]
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "Criar admin",
+        "tags": ["Autenticação"]
+      }
+    },
+    "/api/upload": {
+      "post": {
+        "summary": "Upload de imagens",
+        "tags": ["Uploads"]
+      }
+    },
+    "/api/webhooks": {
+      "post": {
+        "summary": "Receber webhook externo",
+        "tags": ["Webhooks"]
+      }
+    },
+    "/api/pedidos": {
+      "get": {
+        "summary": "Listar pedidos",
+        "tags": ["Pedidos"]
+      },
+      "post": {
+        "summary": "Criar pedido",
+        "tags": ["Pedidos"]
+      }
+    },
+    "/api/pedidos/{id}": {
+      "get": {
+        "summary": "Buscar pedido",
+        "tags": ["Pedidos"]
+      },
+      "put": {
+        "summary": "Atualizar pedido",
+        "tags": ["Pedidos"]
+      },
+      "delete": {
+        "summary": "Remover pedido",
+        "tags": ["Pedidos"]
+      }
+    },
+    "/api/pedidos/{id}/status": {
+      "get": {
+        "summary": "Buscar status do pedido",
+        "tags": ["Pedidos"]
+      },
+      "put": {
+        "summary": "Atualizar status do pedido",
+        "tags": ["Pedidos"]
+      }
+    },
+    "/api/clientes": {
+      "get": {
+        "summary": "Listar clientes",
+        "tags": ["Clientes"]
+      },
+      "post": {
+        "summary": "Criar cliente",
+        "tags": ["Clientes"]
+      }
+    },
+    "/api/clientes/{id}": {
+      "get": {
+        "summary": "Buscar cliente",
+        "tags": ["Clientes"]
+      },
+      "put": {
+        "summary": "Atualizar cliente",
+        "tags": ["Clientes"]
+      },
+      "delete": {
+        "summary": "Remover cliente",
+        "tags": ["Clientes"]
+      }
+    },
+    "/api/fornecedores": {
+      "get": {
+        "summary": "Listar fornecedores",
+        "tags": ["Fornecedores"]
+      },
+      "post": {
+        "summary": "Criar fornecedor",
+        "tags": ["Fornecedores"]
+      }
+    },
+    "/api/fornecedores/{id}": {
+      "get": {
+        "summary": "Buscar fornecedor",
+        "tags": ["Fornecedores"]
+      },
+      "put": {
+        "summary": "Atualizar fornecedor",
+        "tags": ["Fornecedores"]
+      },
+      "delete": {
+        "summary": "Remover fornecedor",
+        "tags": ["Fornecedores"]
+      }
+    },
+    "/api/configuracoes-loja": {
+      "get": {
+        "summary": "Buscar configurações da loja",
+        "tags": ["Configurações"]
+      },
+      "put": {
+        "summary": "Atualizar configurações da loja",
+        "tags": ["Configurações"]
+      }
+    }
+  }
+}
