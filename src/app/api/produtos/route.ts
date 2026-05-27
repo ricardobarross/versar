@@ -10,22 +10,26 @@ function supabaseServer() {
 
 // =====================================
 // GET /api/produtos
-// Lista todos os produtos
+// Lista todos os produtos (TABELAS CORRETAS)
 // =====================================
 export async function GET() {
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from("produtos")
+    .from("products")
     .select(`
       *,
-      categorias ( nome ),
-      fornecedores ( nome )
+      categories ( name ),
+      suppliers ( name )
     `)
-    .order("nome", { ascending: true });
+    .order("name", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao buscar produtos." }, { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Erro ao buscar produtos." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json(data);
@@ -33,15 +37,15 @@ export async function GET() {
 
 // =====================================
 // POST /api/produtos
-// Cria um novo produto
+// Cria um novo produto (TABELA CORRETA)
 // =====================================
 export async function POST(request: Request) {
   const body = await request.json();
-  const { nome, descricao, preco, categoria_id, fornecedor_id, ativo } = body;
+  const { name, description, price, category_id, supplier_id, is_active } = body;
 
-  if (!nome || !preco) {
+  if (!name || !price) {
     return NextResponse.json(
-      { error: "Campos obrigatórios: nome, preco." },
+      { error: "Campos obrigatórios: name, price." },
       { status: 400 }
     );
   }
@@ -49,22 +53,25 @@ export async function POST(request: Request) {
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from("produtos")
+    .from("products")
     .insert({
-      nome,
-      descricao,
-      preco,
-      categoria_id,
-      fornecedor_id,
-      ativo: ativo ?? true,
+      name,
+      description,
+      price,
+      category_id,
+      supplier_id,
+      is_active: is_active ?? true,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     })
     .select()
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao criar produto." }, { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Erro ao criar produto." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
