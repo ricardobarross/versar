@@ -1,0 +1,8 @@
+vE6eVI4t9LQTB0NL
+
+VERSAR
+
+
+NEXT_PUBLIC_SUPABASE_URL=https://zyggbvhumzeymqjbyava.supabase.co
+
+anon public  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5Z2didmh1bXpleW1xamJ5YXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMTUzMzMsImV4cCI6MjA5Mjc5MTMzM30.Myz6nmhNyaUifHK9YO6ISWZbY4WsGiB_dVK5o1i8V9g
