@@ -5,7 +5,7 @@ import { CATEGORIA_SELECT, CONFIG_SELECT, PRODUTO_CARD_SELECT, normalizarProduto
 export const dynamic = 'force-dynamic'
 
 export default async function LojaPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [configRes, produtosRes, categoriasRes] = await Promise.all([
     supabase.from('store_settings').select(CONFIG_SELECT).maybeSingle(),

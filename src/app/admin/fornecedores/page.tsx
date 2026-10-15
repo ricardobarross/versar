@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Plus, Pencil, Phone } from 'lucide-react'
 
 export default async function FornecedoresPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: fornecedores } = await supabase
     .from('suppliers')
     .select('*')

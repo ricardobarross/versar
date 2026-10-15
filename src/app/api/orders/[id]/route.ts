@@ -3,9 +3,13 @@ import { requireAdmin, apiError, check, readJson, pick, assertUuid, HttpError } 
 import { ORDER_FIELDS } from '@/lib/fields'
 import { isOrderStatus } from '@/lib/orders'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
-export async function GET(req: Request, { params }: Ctx) {
+export async function GET(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)
@@ -23,7 +27,11 @@ export async function GET(req: Request, { params }: Ctx) {
 }
 
 // PUT altera os dados do pedido (não os itens nem o total).
-export async function PUT(req: Request, { params }: Ctx) {
+export async function PUT(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)
@@ -40,7 +48,11 @@ export async function PUT(req: Request, { params }: Ctx) {
 }
 
 // Os itens são apagados em cascata.
-export async function DELETE(req: Request, { params }: Ctx) {
+export async function DELETE(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)

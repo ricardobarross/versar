@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server'
 import { requireAdmin, apiError, check, readJson, assertUuid, HttpError } from '@/lib/api'
 import { ORDER_STATUSES, isOrderStatus } from '@/lib/orders'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
-export async function GET(req: Request, { params }: Ctx) {
+export async function GET(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)
@@ -17,7 +21,11 @@ export async function GET(req: Request, { params }: Ctx) {
   }
 }
 
-export async function PUT(req: Request, { params }: Ctx) {
+export async function PUT(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)

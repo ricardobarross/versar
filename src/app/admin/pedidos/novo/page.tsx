@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import OrderForm from '@/components/admin/PedidoForm'
 
 export default async function NewOrderPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: customers } = await supabase.from('customers').select('*').order('name')
   const { data: products } = await supabase

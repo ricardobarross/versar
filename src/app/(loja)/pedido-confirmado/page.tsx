@@ -3,8 +3,8 @@ import { CheckCircle2 } from 'lucide-react'
 
 export const metadata = { title: 'Pedido confirmado' }
 
-export default function PedidoConfirmadoPage({ searchParams }: { searchParams: { numero?: string } }) {
-  const numero = searchParams.numero?.replace(/\D/g, '')
+export default async function PedidoConfirmadoPage({ searchParams }: { searchParams: Promise<{ numero?: string }> }) {
+  const numero = (await searchParams).numero?.replace(/\D/g, '')
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 text-center px-4">

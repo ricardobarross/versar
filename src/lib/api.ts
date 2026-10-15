@@ -33,7 +33,7 @@ export async function requireAdmin(req?: Request): Promise<AdminContext> {
           global: { headers: { Authorization: `Bearer ${bearer}` } },
         }
       )
-    : createSessionClient()
+    : await createSessionClient()
 
   const { data: { user }, error } = bearer
     ? await supabase.auth.getUser(bearer)

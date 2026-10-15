@@ -4,8 +4,9 @@ import { askClaude } from '@/lib/ai'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
+  const params = await ctx.params
   try {
     const { id } = params
     assertUuid(id)

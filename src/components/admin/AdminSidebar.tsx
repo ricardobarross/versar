@@ -12,6 +12,7 @@ import {
   Tag,
   BarChart3,
   Settings,
+  UserCircle,
   LogOut,
   Store,
   Menu,
@@ -28,12 +29,13 @@ const navItems = [
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
   { href: '/admin/relatorios', label: 'Relatórios', icon: BarChart3 },
   { href: '/admin/configuracoes', label: 'Configurações', icon: Settings },
+  { href: '/admin/conta', label: 'Minha conta', icon: UserCircle },
 ]
 
 export default function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const [isOpen, setIsOpen] = useState(false)
 
   async function handleLogout() {

@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const ERROS: Record<string, string> = {
   'sem-permissao': 'Esta conta não tem acesso ao painel administrativo.',
+  'link-invalido': 'O link é inválido ou expirou. Peça um novo em "Esqueci a senha".',
 }
 
 /** Só aceita caminhos internos do painel (evita redirecionar para outro site). */
@@ -97,6 +99,9 @@ export default function LoginPage() {
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
+          <Link href="/auth/esqueci-senha" className="block text-center text-sm text-zinc-400 hover:text-white">
+            Esqueci a senha
+          </Link>
         </form>
       </div>
     </div>

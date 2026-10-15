@@ -7,7 +7,11 @@ import { requireAdmin, apiError, check, readJson, assertUuid, HttpError } from '
   { "operacao": "set", "valor": 20 }  → define estoque = 20
   Cada alteração fica registada em inventory_movements.
 */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)

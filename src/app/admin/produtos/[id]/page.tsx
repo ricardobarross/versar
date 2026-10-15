@@ -2,12 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import ProductForm from '@/components/admin/ProdutoForm'
 import { notFound } from 'next/navigation'
 
-export default async function EditProductPage({
-  params,
-}: {
-  params: { id: string }
+export default async function EditProductPage(props: {
+  params: Promise<{ id: string }>
 }) {
-  const supabase = createClient()
+  const params = await props.params
+  const supabase = await createClient()
 
   const { data: product } = await supabase
     .from('products')

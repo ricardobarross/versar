@@ -6,10 +6,11 @@ import { PRODUTO_DETALHE_SELECT, normalizarProduto, type ProdutoLoja } from '@/l
 
 export const dynamic = 'force-dynamic'
 
-type PageProps = { params: { slug: string } }
+type PageProps = { params: Promise<{ slug: string }> }
 
 async function buscarProduto(slug: string) {
-  const { data, error } = await createClient()
+  const supabase = await createClient()
+  const { data, error } = await supabase
     .from('products')
     .select(PRODUTO_DETALHE_SELECT)
     .eq('slug', slug)
@@ -20,7 +21,7 @@ async function buscarProduto(slug: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const produto = await buscarProduto(params.slug)
+  const produto = await buscarProduto((await params).slug)
   if (!produto) return { title: 'Produto não encontrado' }
   return {
     title: produto.nome,
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function Page({ params }: PageProps) {
-  const bruto = await buscarProduto(params.slug)
+  const bruto = await buscarProduto((await params).slug)
   if (!bruto) notFound()
 
   const produto = normalizarProduto(bruto)

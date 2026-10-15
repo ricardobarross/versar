@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server'
 import { requireAdmin, apiError, check, assertUuid, HttpError } from '@/lib/api'
 
 // POST /api/products/[id]/toggle — ativa/desativa o produto na loja
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)

@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server'
 import { requireAdmin, apiError, check, readJson, pick, assertUuid, HttpError } from '@/lib/api'
 import { PRODUCT_FIELDS } from '@/lib/fields'
 
-type Ctx = { params: { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
-export async function GET(req: Request, { params }: Ctx) {
+export async function GET(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)
@@ -21,7 +25,11 @@ export async function GET(req: Request, { params }: Ctx) {
   }
 }
 
-export async function PUT(req: Request, { params }: Ctx) {
+export async function PUT(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)
@@ -37,7 +45,11 @@ export async function PUT(req: Request, { params }: Ctx) {
 }
 
 // Fotos e variações são apagadas em cascata (FK on delete cascade).
-export async function DELETE(req: Request, { params }: Ctx) {
+export async function DELETE(
+  req: Request,
+  ctx: Ctx
+) {
+  const params = await ctx.params
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)

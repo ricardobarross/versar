@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import CategoriaForm from '@/components/admin/CategoriaForm'
 
-export default async function EditarCategoriaPage({ params }: { params: { id: string } }) {
-  const { data: categoria } = await createClient()
+export default async function EditarCategoriaPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
+  const { data: categoria } = await supabase
     .from('categories')
     .select('id, name, description, is_active')
     .eq('id', params.id)

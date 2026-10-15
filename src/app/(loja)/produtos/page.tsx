@@ -7,9 +7,9 @@ import { CATEGORIA_SELECT, PRODUTO_CARD_SELECT, normalizarProduto, type Categori
 export const metadata: Metadata = { title: 'Produtos' }
 export const dynamic = 'force-dynamic'
 
-export default async function ProdutosPage({ searchParams }: { searchParams: { q?: string } }) {
-  const supabase = createClient()
-  const busca = (searchParams.q ?? '').trim().slice(0, 80)
+export default async function ProdutosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const supabase = await createClient()
+  const busca = ((await searchParams).q ?? '').trim().slice(0, 80)
   const termo = busca.replace(/[\\%_]/g, m => `\\${m}`)
 
   let consultaProdutos = supabase
@@ -39,7 +39,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: { q
         </h1>
         <p className="text-zinc-500 mt-1 text-sm">
           {lista.length} produto{lista.length !== 1 ? 's' : ''}
-          {busca.length >= 2 && <> · <a href="/produtos" className="underline hover:text-zinc-900">limpar busca</a></>}
+          {busca.length >= 2 && <> · <Link href="/produtos" className="underline hover:text-zinc-900">limpar busca</Link></>}
         </p>
       </div>
 

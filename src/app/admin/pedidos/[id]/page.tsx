@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import OrderForm from '@/components/admin/PedidoForm'
 import { notFound } from 'next/navigation'
 
-export default async function EditOrderPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function EditOrderPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
 
   const { data: order } = await supabase
     .from('orders')

@@ -11,7 +11,9 @@ export async function GET(req: Request) {
   // escapa os curingas do LIKE para a pesquisa ser literal
   const term = q.replace(/[\\%_]/g, m => `\\${m}`)
 
-  const { data, error } = await createClient()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
     .from('products')
     .select('id, name, slug, price, promo_price, product_images(url, order)')
     .eq('is_active', true)

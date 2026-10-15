@@ -5,7 +5,7 @@ import { Plus, Pencil } from 'lucide-react'
 import { orderStatusMeta } from '@/lib/orders'
 
 export default async function PedidosPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: pedidos } = await supabase
     .from('orders')

@@ -3,7 +3,7 @@
 Loja online de moda masculina com painel administrativo (produtos, estoque, pedidos,
 clientes, fornecedores, relatórios e Secretária Inteligente).
 
-**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase (Postgres, Auth, Storage) · Vercel
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS · Supabase (Postgres, Auth, Storage) · Vercel
 
 ## Estrutura
 
@@ -54,6 +54,11 @@ Regras de acesso (RLS):
 2. Crie o utilizador em **Authentication → Users → Add user** com
    *Auto Confirm User* ligado. A ligação ao admin é automática.
 3. Em **Authentication → Sign In / Providers**, desligue *Allow new users to sign up*.
+
+Cada admin troca a própria senha em **Minha conta** (no painel). Quem esquecer a senha
+usa **Esqueci a senha** no login — para o link do e-mail funcionar, em
+**Authentication → URL Configuration** defina o *Site URL* com o endereço da loja e
+acrescente `https://<endereço-da-loja>/**` em *Redirect URLs*.
 
 ## Deploy (Vercel)
 

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Plus, Pencil } from 'lucide-react'
 
 export default async function CategoriasPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: categorias } = await supabase
     .from('categories')
     .select('*')

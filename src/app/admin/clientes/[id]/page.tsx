@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import ClienteForm from '@/components/admin/ClienteForm'
 import { notFound } from 'next/navigation'
 
-export default async function EditCustomerPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function EditCustomerPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
   const { data: customer } = await supabase.from('customers').select('*').eq('id', params.id).single()
   if (!customer) notFound()
 

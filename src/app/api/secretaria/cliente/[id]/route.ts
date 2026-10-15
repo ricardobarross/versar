@@ -5,8 +5,9 @@ import { OPEN_ORDER_STATUSES, type OrderStatus } from '@/lib/orders'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
+  const params = await ctx.params
   try {
     const { id } = params
     assertUuid(id)

@@ -7,12 +7,12 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = params
-  const supabase = createClient()
+  const { slug } = await params
+  const supabase = await createClient()
   const { data: category } = await supabase
     .from('categories')
     .select('name')
@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoriaPage({ params }: Props) {
-  const { slug } = params
-  const supabase = createClient()
+  const { slug } = await params
+  const supabase = await createClient()
 
   const { data: category } = await supabase
     .from('categories')

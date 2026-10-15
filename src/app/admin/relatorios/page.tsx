@@ -3,7 +3,7 @@ import { TrendingUp, Package, ShoppingBag, Users } from 'lucide-react'
 import { orderStatusMeta } from '@/lib/orders'
 
 export default async function ReportsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const hoje = new Date()
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString()

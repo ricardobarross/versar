@@ -6,7 +6,7 @@ import { OPEN_ORDER_STATUSES, orderStatusMeta } from '@/lib/orders'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboard() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const now = new Date()
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
