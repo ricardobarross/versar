@@ -1,13 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, assertUuid } from '@/lib/api'
+import { askClaude } from '@/lib/ai'
+import { OPEN_ORDER_STATUSES, type OrderStatus } from '@/lib/orders'
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    const supabase = createClient()
+    const { id } = params
+    assertUuid(id)
+    const { supabase } = await requireAdmin(request)
 
     const { data: orders } = await supabase
       .from('orders')
@@ -34,8 +37,9 @@ export async function GET(
       diasSemComprar = Math.floor((Date.now() - data.getTime()) / (1000 * 60 * 60 * 24))
     }
 
+    // Pedidos ainda em aberto (novos/confirmados/pagos/em separação)
     const pagamentosPendentes = orders?.filter(p =>
-      p.status === 'novo' || p.status === 'confirmado'
+      OPEN_ORDER_STATUSES.includes(p.status as OrderStatus)
     ).length ?? 0
 
     const contagemProdutos: Record<string, number> = {}
@@ -64,24 +68,10 @@ Pagamentos pendentes: ${pagamentosPendentes}.
 Produtos que mais compra: ${produtosHabituais.map(p => `${p.nome} (${p.quantidade}x)`).join(', ') || 'nenhum'}.
         `.trim()
 
-        try {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': apiKey,
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model: 'claude-3-5-sonnet-20241022',
-              max_tokens: 1000,
-              system: 'És uma secretária inteligente de uma loja de moda masculina brasileira chamada VERSAR. Analisa os dados do cliente e gera um resumo útil em português brasileiro, com tom profissional mas direto. Máximo 3 frases. Destaca o que é mais relevante para o gestor da loja: fidelidade, risco de abandono, oportunidade de venda, ou ação necessária.',
-              messages: [{ role: 'user', content: contexto }],
-            }),
-          })
-          const data = await res.json()
-          resumoIA = data.content?.[0]?.text ?? ''
-        } catch {}
+        resumoIA = (await askClaude(
+          'És uma secretária inteligente de uma loja de moda masculina brasileira chamada VERSAR. Analisa os dados do cliente e gera um resumo útil em português brasileiro, com tom profissional mas direto. Máximo 3 frases. Destaca o que é mais relevante para o gestor da loja: fidelidade, risco de abandono, oportunidade de venda, ou ação necessária.',
+          contexto
+        )) ?? ''
       }
 
       if (!resumoIA) {
@@ -109,7 +99,7 @@ Produtos que mais compra: ${produtosHabituais.map(p => `${p.nome} (${p.quantidad
       pagamentosPendentes,
       resumoIA,
     })
-  } catch (e: any) {
-    return NextResponse.json({ erro: e.message ?? 'Erro interno' }, { status: 500 })
+  } catch (err) {
+    return apiError(err)
   }
 }

@@ -1,12 +1,10 @@
 import Link from 'next/link'
 import { CheckCircle2 } from 'lucide-react'
 
-interface Props {
-  searchParams: Promise<{ id?: string }>
-}
+export const metadata = { title: 'Pedido confirmado' }
 
-export default async function OrderConfirmedPage({ searchParams }: Props) {
-  const { id } = await searchParams
+export default function PedidoConfirmadoPage({ searchParams }: { searchParams: { numero?: string } }) {
+  const numero = searchParams.numero?.replace(/\D/g, '')
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 text-center px-4">
@@ -15,25 +13,31 @@ export default async function OrderConfirmedPage({ searchParams }: Props) {
       </div>
 
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">Order confirmed!</h1>
-        {id && (
-          <p className="text-zinc-500 mt-2 text-sm">Order <span className="font-semibold text-zinc-700">#{id.slice(0, 8).toUpperCase()}</span> placed successfully</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">Pedido recebido!</h1>
+        {numero && (
+          <p className="text-zinc-500 mt-2 text-sm">
+            Seu pedido <span className="font-semibold text-zinc-700">#{numero}</span> foi registrado com sucesso.
+          </p>
         )}
       </div>
 
       <div className="max-w-sm bg-zinc-50 rounded-2xl p-5 border border-zinc-100 text-sm text-zinc-600 leading-relaxed">
-        <p>The store's WhatsApp was opened with your order summary.</p>
-        <p className="mt-2">Send the message to confirm and arrange payment and shipping. 📦</p>
+        <p>Abrimos o WhatsApp da loja com o resumo do seu pedido.</p>
+        <p className="mt-2">Envie a mensagem para confirmar e combinar o pagamento e a entrega. 📦</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <Link href="/produtos"
-          className="px-6 py-3 border border-zinc-200 text-zinc-700 font-semibold rounded-full hover:bg-zinc-50 transition-colors">
-          Continue shopping
+        <Link
+          href="/produtos"
+          className="px-6 py-3 border border-zinc-200 text-zinc-700 font-semibold rounded-full hover:bg-zinc-50 transition-colors"
+        >
+          Continuar comprando
         </Link>
-        <Link href="/"
-          className="px-6 py-3 bg-zinc-900 text-white font-semibold rounded-full hover:bg-zinc-700 transition-colors">
-          Back to home
+        <Link
+          href="/"
+          className="px-6 py-3 bg-zinc-900 text-white font-semibold rounded-full hover:bg-zinc-700 transition-colors"
+        >
+          Voltar ao início
         </Link>
       </div>
     </div>

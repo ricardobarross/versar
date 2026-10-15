@@ -1,13 +1,15 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, assertUuid } from '@/lib/api'
+import { askClaude } from '@/lib/ai'
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    const supabase = createClient()
+    const { id } = params
+    assertUuid(id)
+    const { supabase } = await requireAdmin(request)
 
     const { data: product } = await supabase
       .from('products')
@@ -71,24 +73,10 @@ Produtos similares na loja: ${produtosSimilares.length > 0
   : 'nenhum na mesma categoria'}.
       `.trim()
 
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1000,
-            system: 'És uma secretária inteligente de uma loja de moda masculina brasileira chamada VERSAR. Analisa os dados do produto e gera uma análise útil em português brasileiro, com tom profissional e direto. Máximo 3 frases. Foca no que é mais relevante para o gestor: desempenho de vendas, posicionamento de preço face a similares, alertas de estoque, e oportunidades de melhoria.',
-            messages: [{ role: 'user', content: contexto }],
-          }),
-        })
-        const data = await res.json()
-        analiseIA = data.content?.[0]?.text ?? ''
-      } catch {}
+      analiseIA = (await askClaude(
+        'És uma secretária inteligente de uma loja de moda masculina brasileira chamada VERSAR. Analisa os dados do produto e gera uma análise útil em português brasileiro, com tom profissional e direto. Máximo 3 frases. Foca no que é mais relevante para o gestor: desempenho de vendas, posicionamento de preço face a similares, alertas de estoque, e oportunidades de melhoria.',
+        contexto
+      )) ?? ''
     }
 
     if (!analiseIA) {
@@ -112,7 +100,7 @@ Produtos similares na loja: ${produtosSimilares.length > 0
       produtosSimilares,
       analiseIA,
     })
-  } catch (e: any) {
-    return NextResponse.json({ erro: e.message ?? 'Erro interno' }, { status: 500 })
+  } catch (err) {
+    return apiError(err)
   }
 }

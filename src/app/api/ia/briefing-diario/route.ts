@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/app/api/admin/auth/route";
+import { requireAdmin } from "@/lib/api";
 
 type ContaPagar = {
   id: string;
@@ -28,28 +27,6 @@ type ClienteInativo = {
   days_without_purchase: number;
 };
 
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Configuração do Supabase ausente.");
-  }
-
-  return { url, anonKey };
-}
-
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-
-  return createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
-
 function diffInDays(from: string | null): number {
   if (!from) return 9999;
   const d1 = new Date(from);
@@ -60,9 +37,7 @@ function diffInDays(from: string | null): number {
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin(req);
-
-    const supabase = createSupabaseServerClient();
+    const { supabase } = await requireAdmin(req);
 
     // Contas a pagar pendentes ou vencendo hoje
     const hoje = new Date().toISOString().slice(0, 10);
@@ -73,11 +48,11 @@ export async function GET(req: NextRequest) {
       .in("status", ["pendente", "atrasado"])
       .lte("data_vencimento", hoje);
 
-    // Produtos com estoque baixo
+    // Produtos ativos com as variações (o estoque real está nas variações)
     const produtosPromise = supabase
       .from("products")
-      .select("id,name,stock,min_stock")
-      .or("stock.lte.min_stock,stock.lte.0");
+      .select("id,name,min_stock,product_variations(stock)")
+      .eq("is_active", true);
 
     // Clientes inativos (ex: sem compra há mais de 30 dias)
     const clientesPromise = supabase.rpc("customers_with_last_order");
@@ -99,7 +74,16 @@ export async function GET(req: NextRequest) {
     }
 
     const contas = (contasRes.data || []) as ContaPagar[];
-    const produtosBaixo = (produtosRes.data || []) as ProdutoEstoqueBaixo[];
+    // Estoque baixo = soma das variações <= min_stock (padrão 5)
+    const produtosBaixo: ProdutoEstoqueBaixo[] = (produtosRes.data || [])
+      .map((p: { id: string; name: string; min_stock: number | null; product_variations: { stock: number }[] | null }) => ({
+        id: p.id,
+        name: p.name,
+        min_stock: p.min_stock,
+        stock: (p.product_variations || []).reduce((acc, v) => acc + (v.stock || 0), 0),
+      }))
+      .filter((p) => p.stock <= (p.min_stock ?? 5))
+      .sort((a, b) => a.stock - b.stock);
 
     const clientesBrutos = (clientesRes.data || []) as {
       id: string;

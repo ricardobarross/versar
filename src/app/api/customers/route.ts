@@ -1,48 +1,31 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, pick, HttpError } from '@/lib/api'
+import { CUSTOMER_FIELDS } from '@/lib/fields'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+export const dynamic = 'force-dynamic'
+
+// GET /api/customers?active=true|false
+export async function GET(req: Request) {
+  try {
+    const { supabase } = await requireAdmin(req)
+    const active = new URL(req.url).searchParams.get('active')
+    let query = supabase.from('customers').select('*').order('name')
+    if (active === 'true' || active === 'false') query = query.eq('is_active', active === 'true')
+    return NextResponse.json(check(await query, 'Erro ao buscar clientes.'))
+  } catch (err) {
+    return apiError(err)
+  }
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const active = searchParams.get("active");
-
-  const supabase = supabaseServer();
-
-  let query = supabase
-    .from("customers")
-    .select("*")
-    .order("name", { ascending: true });
-
-  if (active !== null) query = query.eq("is_active", active === "true");
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao buscar clientes." }, { status: 500 });
+// POST /api/customers
+export async function POST(req: Request) {
+  try {
+    const { supabase } = await requireAdmin(req)
+    const body = pick(await readJson(req), CUSTOMER_FIELDS)
+    if (!body.name) throw new HttpError(400, 'Campo obrigatório: name.')
+    const data = check(await supabase.from('customers').insert(body).select().single(), 'Erro ao criar cliente.')
+    return NextResponse.json({ success: true, data }, { status: 201 })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json(data);
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("customers")
-    .insert(body)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao criar cliente." }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true, data });
 }

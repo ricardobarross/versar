@@ -168,30 +168,28 @@ export default function CheckoutPage() {
             estado: endereco.estado,
             cep: endereco.cep.replace(/\D/g, ''),
           },
+          // preço e total são calculados no servidor
           itens: itens.map(i => ({
             variacaoId: i.variacaoId,
-            produtoId: i.produtoId,
             quantidade: i.quantidade,
-            precoUnitario: i.preco,
-            nome: `${i.produtoNome} — ${i.variacaoNome}`,
           })),
-          total: totalPreco,
         }),
       })
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.erro ?? 'Erro ao criar pedido')
 
-      // Montar mensagem WhatsApp
-      const linhasItens = itens.map(i =>
-        `• ${i.produtoNome} (${i.variacaoNome}) x${i.quantidade} — ${formatBRL(i.preco * i.quantidade)}`
+      // Montar mensagem WhatsApp com os valores confirmados pelo servidor
+      const confirmados: { name: string; variation: string; quantity: number; unit_price: number }[] = data.itens ?? []
+      const linhasItens = confirmados.map(i =>
+        `• ${i.name}${i.variation ? ` (${i.variation})` : ''} x${i.quantity} — ${formatBRL(i.unit_price * i.quantity)}`
       ).join('\n')
 
       const msg = encodeURIComponent(
         `Olá! Fiz um pedido na loja 🛍️\n\n` +
         `*Pedido #${data.numero}*\n\n` +
         `${linhasItens}\n\n` +
-        `*Total: ${formatBRL(totalPreco)}*\n\n` +
+        `*Total: ${formatBRL(data.total)}*\n\n` +
         `*Meus dados:*\n` +
         `Nome: ${pessoais.nome}\n` +
         `WhatsApp: ${pessoais.whatsapp}\n` +
@@ -203,7 +201,7 @@ export default function CheckoutPage() {
       limparCarrinho()
 
       // Abrir WhatsApp com o número da loja
-      window.open(`https://wa.me/${data.whatsapp}?text=${msg}`, '_blank')
+      if (data.whatsapp) window.open(`https://wa.me/${data.whatsapp}?text=${msg}`, '_blank')
 
       router.push(`/pedido-confirmado?numero=${data.numero}`)
     } catch (e: any) {

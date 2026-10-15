@@ -1,126 +1,82 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { UUID_RE } from '@/lib/api'
+import type { OrderStatus } from '@/lib/orders'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+export const dynamic = 'force-dynamic'
+
+/**
+ * POST /api/webhooks — eventos externos (pagamentos, envio, WhatsApp).
+ *
+ * Segurança: o remetente tem de assinar o corpo bruto com HMAC-SHA256
+ * usando WEBHOOK_SECRET e enviar o resultado (hex) no cabeçalho
+ * `x-webhook-signature`. Sem WEBHOOK_SECRET configurado a rota fica desligada.
+ *
+ * Corpo: { "tipo": "pagamento_aprovado" | "pagamento_cancelado" | "pedido_enviado"
+ *          | "mensagem_whatsapp", "pedido_id"?: uuid, "numero"?: string, "mensagem"?: string }
+ */
+const STATUS_POR_EVENTO: Record<string, OrderStatus> = {
+  pagamento_aprovado: 'paid',
+  pagamento_cancelado: 'canceled',
+  pedido_enviado: 'shipped',
 }
 
-// =====================================
-// POST /api/webhooks
-// Recebe eventos externos (pagamentos, ERP, WhatsApp API, etc.)
-// =====================================
-export async function POST(request: Request) {
-  const supabase = supabaseServer();
+function assinaturaValida(raw: string, recebida: string | null, segredo: string) {
+  if (!recebida) return false
+  const esperada = createHmac('sha256', segredo).update(raw).digest('hex')
+  const a = Buffer.from(esperada, 'utf8')
+  const b = Buffer.from(recebida.replace(/^sha256=/, ''), 'utf8')
+  return a.length === b.length && timingSafeEqual(a, b)
+}
 
-  const body = await request.json();
-  const tipo = body?.tipo ?? "desconhecido";
-
-  // ---------------------------
-  // (Opcional) Validação de assinatura
-  // ---------------------------
-  const assinatura = request.headers.get("x-webhook-signature");
-  const segredo = process.env.WEBHOOK_SECRET;
-
-  if (segredo && assinatura !== segredo) {
-    return NextResponse.json(
-      { error: "Assinatura inválida." },
-      { status: 401 }
-    );
+export async function POST(req: Request) {
+  const segredo = process.env.WEBHOOK_SECRET
+  if (!segredo) {
+    return NextResponse.json({ error: 'Webhooks desativados (WEBHOOK_SECRET não configurado).' }, { status: 503 })
   }
 
-  // ---------------------------
-  // Registrar log do webhook
-  // ---------------------------
-  const { data: log, error: logError } = await supabase
-    .from("webhook_logs")
-    .insert({
-      tipo,
-      payload: body,
-      recebido_em: new Date().toISOString(),
-      processado: false,
-    })
-    .select()
-    .single();
-
-  if (logError) {
-    return NextResponse.json(
-      { error: "Erro ao registrar webhook." },
-      { status: 500 }
-    );
+  const raw = await req.text()
+  if (!assinaturaValida(raw, req.headers.get('x-webhook-signature'), segredo)) {
+    return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 })
   }
 
-  // ---------------------------
-  // Processamento por tipo
-  // ---------------------------
+  let body: { tipo?: string; pedido_id?: string; numero?: string; mensagem?: string }
   try {
-    switch (tipo) {
-      case "pagamento_aprovado":
-        await supabase
-          .from("pedidos")
-          .update({
-            status: "pago",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", body.pedido_id);
-        break;
-
-      case "pagamento_cancelado":
-        await supabase
-          .from("pedidos")
-          .update({
-            status: "cancelado",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", body.pedido_id);
-        break;
-
-      case "pedido_enviado":
-        await supabase
-          .from("pedidos")
-          .update({
-            status: "enviado",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", body.pedido_id);
-        break;
-
-      case "mensagem_whatsapp":
-        // Exemplo: registrar mensagem recebida
-        await supabase.from("mensagens_whatsapp").insert({
-          numero: body.numero,
-          mensagem: body.mensagem,
-          recebido_em: new Date().toISOString(),
-        });
-        break;
-
-      default:
-        // Tipos desconhecidos são apenas logados
-        break;
-    }
-
-    // Marcar como processado
-    await supabase
-      .from("webhook_logs")
-      .update({ processado: true })
-      .eq("id", log.id);
-
-  } catch (erro) {
-    await supabase
-      .from("webhook_logs")
-      .update({ erro: String(erro) })
-      .eq("id", log.id);
-
-    return NextResponse.json(
-      { error: "Erro ao processar webhook." },
-      { status: 500 }
-    );
+    body = JSON.parse(raw)
+  } catch {
+    return NextResponse.json({ error: 'JSON inválido.' }, { status: 400 })
   }
 
-  return NextResponse.json({
-    success: true,
-    message: "Webhook recebido e processado.",
-  });
+  const tipo = typeof body.tipo === 'string' ? body.tipo : 'desconhecido'
+  const supabase = createAdminClient()
+
+  const { data: log, error: logError } = await supabase
+    .from('webhook_logs')
+    .insert({ tipo, payload: body, processado: false })
+    .select('id')
+    .single()
+  if (logError) return NextResponse.json({ error: 'Erro ao registar webhook.' }, { status: 500 })
+
+  try {
+    const novoStatus = STATUS_POR_EVENTO[tipo]
+    if (novoStatus) {
+      if (!body.pedido_id || !UUID_RE.test(body.pedido_id)) throw new Error('pedido_id inválido')
+      const { error } = await supabase.from('orders').update({ status: novoStatus }).eq('id', body.pedido_id)
+      if (error) throw new Error(error.message)
+    } else if (tipo === 'mensagem_whatsapp') {
+      const { error } = await supabase.from('mensagens_whatsapp').insert({
+        numero: String(body.numero ?? '').slice(0, 30),
+        mensagem: String(body.mensagem ?? '').slice(0, 4000),
+      })
+      if (error) throw new Error(error.message)
+    }
+    // outros tipos ficam só registados no log
+
+    await supabase.from('webhook_logs').update({ processado: true }).eq('id', log.id)
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    await supabase.from('webhook_logs').update({ erro: String(e) }).eq('id', log.id)
+    return NextResponse.json({ error: 'Erro ao processar webhook.' }, { status: 500 })
+  }
 }

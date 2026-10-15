@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/app/api/admin/auth/route";
+import { requireAdmin } from "@/lib/api";
 
 type Category = {
   id: string;
@@ -11,33 +10,9 @@ type Category = {
   created_at: string;
 };
 
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Configuração do Supabase ausente.");
-  }
-
-  return { url, anonKey };
-}
-
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-
-  return createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
-
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin(req);
-
-    const supabase = createSupabaseServerClient();
+    const { supabase } = await requireAdmin(req);
 
     const { data, error } = await supabase
       .from("categories")
@@ -59,7 +34,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const body = await req.json();
     const { name, slug, description, is_active } = body;
@@ -70,8 +45,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("categories")
@@ -99,7 +72,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const body = await req.json();
     const { id, name, slug, description, is_active } = body;
@@ -110,8 +83,6 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     // Nota: tabela categories não tem coluna updated_at no schema
     const { data, error } = await supabase
@@ -141,7 +112,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const id = req.nextUrl.searchParams.get("id");
 
@@ -151,8 +122,6 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     const { error } = await supabase.from("categories").delete().eq("id", id);
 
@@ -172,16 +141,3 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
-  return NextResponse.json(
-    { success: true },
-    {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Admin-Token",
-      },
-    }
-  );
-}

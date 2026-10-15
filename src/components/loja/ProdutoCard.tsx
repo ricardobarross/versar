@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import type { Produto } from '@/types'
+import type { ProdutoLoja } from '@/lib/loja'
 
-export default function ProdutoCard({ produto }: { produto: Produto }) {
+export default function ProdutoCard({ produto }: { produto: ProdutoLoja }) {
   const foto = produto.produto_fotos
-    ?.sort((a, b) => a.ordem - b.ordem)[0]
+    ? [...produto.produto_fotos].sort((a, b) => a.ordem - b.ordem)[0]
+    : undefined
 
   const estoqueTotal = produto.produto_variacoes
     ?.reduce((acc, v) => acc + v.estoque, 0) ?? 0

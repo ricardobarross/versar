@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VERSAR — Loja e painel de gestão
 
-## Getting Started
+Loja online de moda masculina com painel administrativo (produtos, estoque, pedidos,
+clientes, fornecedores, relatórios e Secretária Inteligente).
 
-First, run the development server:
+**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase (Postgres, Auth, Storage) · Vercel
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Estrutura
+
+```
+src/
+  app/(loja)/        loja pública: início, produtos, categoria, carrinho, checkout
+  app/admin/         painel (só para utilizadores em public.admins)
+  app/auth/login/    login do painel (Supabase Auth)
+  app/api/           rotas de API (ver API.md)
+  components/        componentes da loja e do painel
+  lib/
+    api.ts           requireAdmin(), erros e validação das rotas
+    loja.ts          consultas e tipos da loja pública
+    orders.ts        status de pedido (fonte única)
+    supabase/        clientes Supabase (browser, servidor, service role)
+supabase/
+  migrations/        schema, RLS, funções — aplicar por ordem
+  seed.sql           dados de exemplo
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Configuração local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. `npm install`
+2. Copie `.env.example` para `.env.local` e preencha com as chaves do Supabase
+   (Project Settings → API Keys).
+3. `npm run dev` → http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Base de dados
 
-## Learn More
+As migrations em `supabase/migrations` criam tudo (tabelas, RLS, funções, buckets).
+Num projeto novo, aplique-as por ordem no SQL Editor (ou com `supabase db push`)
+e depois, se quiser dados de exemplo, o `supabase/seed.sql`.
 
-To learn more about Next.js, take a look at the following resources:
+Regras de acesso (RLS):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Visitantes** só leem o catálogo ativo e as configurações da loja.
+- **Admins** (tabela `public.admins`) têm acesso total.
+- O **checkout** corre no servidor com a service role e chama a função
+  `checkout_create_order`, que calcula preços, valida e dá baixa no estoque numa
+  única transação. Cancelar um pedido devolve o estoque automaticamente.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Dar acesso ao painel
 
-## Deploy on Vercel
+1. Registe o e-mail como admin (SQL Editor):
+   ```sql
+   insert into public.admins (email, name) values ('email@exemplo.com', 'Nome');
+   ```
+2. Crie o utilizador em **Authentication → Users → Add user** com
+   *Auto Confirm User* ligado. A ligação ao admin é automática.
+3. Em **Authentication → Sign In / Providers**, desligue *Allow new users to sign up*.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy (Vercel)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Variáveis de ambiente necessárias: `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+Opcionais: `NEXT_PUBLIC_SITE_URL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `WEBHOOK_SECRET`.
+
+O build verifica tipos e lint — corra `npx tsc --noEmit` antes de enviar.

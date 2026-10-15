@@ -7,11 +7,12 @@ import { useCarrinho } from '@/components/loja/CarrinhoContext'
 
 interface ConfigLoja {
   nome_loja?: string | null
-  [key: string]: unknown
+  logo_url?: string | null
 }
 
 export default function Navbar({ config }: { config?: ConfigLoja | null }) {
   const [menuAberto, setMenuAberto] = useState(false)
+  const [buscaAberta, setBuscaAberta] = useState(false)
   const { totalItens } = useCarrinho()
 
   return (
@@ -21,7 +22,12 @@ export default function Navbar({ config }: { config?: ConfigLoja | null }) {
 
           {/* Logo */}
           <Link href="/" className="font-bold text-xl tracking-widest text-zinc-900 hover:text-zinc-600 transition-colors">
-            {config?.nome_loja ?? 'VERSAR'}
+            {config?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={config.logo_url} alt={config?.nome_loja ?? 'VERSAR'} className="h-9 w-auto object-contain" />
+            ) : (
+              config?.nome_loja ?? 'VERSAR'
+            )}
           </Link>
 
           {/* Nav Desktop */}
@@ -36,7 +42,12 @@ export default function Navbar({ config }: { config?: ConfigLoja | null }) {
 
           {/* Ações */}
           <div className="flex items-center gap-1 sm:gap-3">
-            <button className="p-2 text-zinc-600 hover:text-zinc-900 transition-colors" aria-label="Pesquisar">
+            <button
+              className="p-2 text-zinc-600 hover:text-zinc-900 transition-colors"
+              aria-label="Pesquisar"
+              aria-expanded={buscaAberta}
+              onClick={() => setBuscaAberta(v => !v)}
+            >
               <Search className="w-5 h-5" />
             </button>
 
@@ -60,6 +71,25 @@ export default function Navbar({ config }: { config?: ConfigLoja | null }) {
           </div>
         </div>
       </div>
+
+      {/* Busca */}
+      {buscaAberta && (
+        <div className="border-t border-zinc-100 bg-white">
+          <form action="/produtos" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex gap-2" onSubmit={() => setBuscaAberta(false)}>
+            <input
+              type="search"
+              name="q"
+              autoFocus
+              minLength={2}
+              placeholder="Buscar produtos..."
+              className="flex-1 border border-zinc-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-zinc-900"
+            />
+            <button type="submit" className="bg-zinc-900 text-white text-sm font-semibold px-5 rounded-full hover:bg-zinc-700">
+              Buscar
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Menu Mobile Dropdown */}
       {menuAberto && (

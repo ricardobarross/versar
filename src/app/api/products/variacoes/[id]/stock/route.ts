@@ -1,102 +1,50 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-// Cria cliente Supabase (server-side)
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, assertUuid, HttpError } from '@/lib/api'
 
 /*
-  OPERACOES SUPORTADAS:
-
-  { "operacao": "add", "valor": 5 }     → soma 5 ao estoque
-  { "operacao": "add", "valor": -3 }    → subtrai 3 do estoque
-  { "operacao": "set", "valor": 20 }    → define estoque = 20
+  POST /api/products/variacoes/[id]/stock
+  { "operacao": "add", "valor": 5 }   → soma 5 ao estoque (negativo subtrai)
+  { "operacao": "set", "valor": 20 }  → define estoque = 20
+  Cada alteração fica registada em inventory_movements.
 */
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    const { operacao, valor, nota } = await readJson<{ operacao?: string; valor?: unknown; nota?: string }>(req)
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+    if (operacao !== 'add' && operacao !== 'set') throw new HttpError(400, "Operação inválida (use 'add' ou 'set').")
+    if (typeof valor !== 'number' || !Number.isInteger(valor)) throw new HttpError(400, 'O valor deve ser um número inteiro.')
 
-  // Validar ID
-  if (!id || id.length < 10) {
-    return NextResponse.json({ error: "ID inválido." }, { status: 400 });
+    const { data: variation, error } = await supabase
+      .from('product_variations')
+      .select('id, product_id, stock')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (error) throw new HttpError(500, 'Erro ao buscar variação.')
+    if (!variation) throw new HttpError(404, 'Variação não encontrada.')
+
+    const novo = operacao === 'add' ? variation.stock + valor : valor
+    if (novo < 0) throw new HttpError(400, 'O estoque não pode ficar negativo.')
+
+    const data = check(
+      await supabase.from('product_variations').update({ stock: novo }).eq('id', params.id).select().single(),
+      'Erro ao atualizar estoque.'
+    )
+
+    const delta = novo - variation.stock
+    if (delta !== 0) {
+      await supabase.from('inventory_movements').insert({
+        product_id: variation.product_id,
+        variation_id: variation.id,
+        type: delta > 0 ? 'in' : 'out',
+        quantity: Math.abs(delta),
+        note: nota ?? (operacao === 'set' ? 'Ajuste manual de estoque' : null),
+      })
+    }
+
+    return NextResponse.json({ success: true, message: 'Estoque atualizado com sucesso.', data })
+  } catch (err) {
+    return apiError(err)
   }
-
-  const body = await request.json();
-  const { operacao, valor } = body;
-
-  // Validar corpo
-  if (!operacao || valor === undefined) {
-    return NextResponse.json(
-      { error: "Envie { operacao: 'add' | 'set', valor: number }" },
-      { status: 400 }
-    );
-  }
-
-  if (typeof valor !== "number") {
-    return NextResponse.json({ error: "O valor deve ser numérico." }, { status: 400 });
-  }
-
-  if (!["add", "set"].includes(operacao)) {
-    return NextResponse.json({ error: "Operação inválida." }, { status: 400 });
-  }
-
-  const supabase = supabaseServer();
-
-  // 1. Buscar variação atual
-  const { data: variacao, error: fetchError } = await supabase
-    .from("produto_variacoes")
-    .select("estoque")
-    .eq("id", id)
-    .single();
-
-  if (fetchError) {
-    return NextResponse.json({ error: "Erro ao buscar variação." }, { status: 500 });
-  }
-
-  if (!variacao) {
-    return NextResponse.json({ error: "Variação não encontrada." }, { status: 404 });
-  }
-
-  let novoEstoque = variacao.estoque;
-
-  // 2. Calcular novo estoque
-  if (operacao === "add") {
-    novoEstoque = variacao.estoque + valor;
-  } else if (operacao === "set") {
-    novoEstoque = valor;
-  }
-
-  // 3. Impedir estoque negativo
-  if (novoEstoque < 0) {
-    return NextResponse.json(
-      { error: "O estoque não pode ficar negativo." },
-      { status: 400 }
-    );
-  }
-
-  // 4. Atualizar no Supabase
-  const { data, error: updateError } = await supabase
-    .from("produto_variacoes")
-    .update({
-      estoque: novoEstoque,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (updateError) {
-    return NextResponse.json({ error: "Erro ao atualizar estoque." }, { status: 500 });
-  }
-
-  // 5. Retornar resultado
-  return NextResponse.json({
-    success: true,
-    message: "Estoque atualizado com sucesso.",
-    data,
-  });
 }

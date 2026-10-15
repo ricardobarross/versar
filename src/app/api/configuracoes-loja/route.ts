@@ -2,28 +2,12 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/app/api/admin/auth/route";
-
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) throw new Error("Configuração do Supabase ausente.");
-  return { url, anonKey };
-}
-
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { requireAdmin, pick } from "@/lib/api";
+import { STORE_SETTINGS_FIELDS } from "@/lib/fields";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin(req);
-
-    const supabase = createSupabaseServerClient();
+    const { supabase } = await requireAdmin(req);
 
     const { data, error } = await supabase
       .from("store_settings")
@@ -45,11 +29,9 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
-    const body = await req.json();
-
-    const supabase = createSupabaseServerClient();
+    const body = pick(await req.json(), STORE_SETTINGS_FIELDS);
 
     const { data, error } = await supabase
       .from("store_settings")

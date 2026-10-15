@@ -1,81 +1,41 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, assertUuid, HttpError } from '@/lib/api'
 
-// Cria cliente Supabase (server-side)
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+type Ctx = { params: { id: string } }
+
+// GET /api/products/[id]/fotos
+export async function GET(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id, 'ID do produto')
+    const { supabase } = await requireAdmin(req)
+    const data = check(
+      await supabase.from('product_images').select('*').eq('product_id', params.id).order('order'),
+      'Erro ao buscar fotos.'
+    )
+    return NextResponse.json(data)
+  } catch (err) {
+    return apiError(err)
+  }
 }
 
-// =====================================
-// GET /api/produtos/[id]/fotos
-// Lista todas as fotos de um produto
-// =====================================
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+// POST /api/products/[id]/fotos  { url, order? }
+export async function POST(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id, 'ID do produto')
+    const { supabase } = await requireAdmin(req)
+    const { url, order } = await readJson<{ url?: string; order?: number }>(req)
+    if (!url) throw new HttpError(400, 'Campo obrigatório: url.')
 
-  if (!id || id.length < 10) {
-    return NextResponse.json({ error: "ID do produto inválido." }, { status: 400 });
+    const data = check(
+      await supabase
+        .from('product_images')
+        .insert({ product_id: params.id, url, order: Number(order ?? 0) })
+        .select()
+        .single(),
+      'Erro ao adicionar foto.'
+    )
+    return NextResponse.json({ success: true, message: 'Foto adicionada com sucesso.', data }, { status: 201 })
+  } catch (err) {
+    return apiError(err)
   }
-
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("produto_fotos")
-    .select("*")
-    .eq("produto_id", id)
-    .order("ordem", { ascending: true });
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao buscar fotos." }, { status: 500 });
-  }
-
-  return NextResponse.json(data);
-}
-
-// =====================================
-// POST /api/produtos/[id]/fotos
-// Cria uma nova foto para o produto
-// =====================================
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-
-  if (!id || id.length < 10) {
-    return NextResponse.json({ error: "ID do produto inválido." }, { status: 400 });
-  }
-
-  const body = await request.json();
-  const { url, ordem } = body;
-
-  if (!url) {
-    return NextResponse.json(
-      { error: "Campo obrigatório: url." },
-      { status: 400 }
-    );
-  }
-
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("produto_fotos")
-    .insert({
-      produto_id: id,
-      url,
-      ordem: ordem ?? 0,
-      created_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao criar foto." }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: "Foto adicionada com sucesso.",
-    data,
-  });
 }

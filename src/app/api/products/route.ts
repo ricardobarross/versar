@@ -1,67 +1,47 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, pick, HttpError } from '@/lib/api'
+import { PRODUCT_FIELDS } from '@/lib/fields'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+export const dynamic = 'force-dynamic'
 
-// GET /api/products
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get("category");
-  const supplier = searchParams.get("supplier");
-  const active = searchParams.get("active");
-  const featured = searchParams.get("featured");
+// GET /api/products?category=&supplier=&active=true|false&featured=true
+export async function GET(req: Request) {
+  try {
+    const { supabase } = await requireAdmin(req)
+    const sp = new URL(req.url).searchParams
 
-  const supabase = supabaseServer();
+    let query = supabase
+      .from('products')
+      .select('*, categories(id, name), suppliers(id, name), product_variations(*), product_images(*)')
+      .order('created_at', { ascending: false })
 
-  let query = supabase
-    .from("products")
-    .select(`
-      *,
-      categories ( id, name ),
-      suppliers ( id, name ),
-      product_variations (*),
-      product_images (*)
-    `)
-    .order("created_at", { ascending: false });
+    const category = sp.get('category')
+    const supplier = sp.get('supplier')
+    const active = sp.get('active')
+    if (category) query = query.eq('category_id', category)
+    if (supplier) query = query.eq('supplier_id', supplier)
+    if (active === 'true' || active === 'false') query = query.eq('is_active', active === 'true')
+    if (sp.get('featured') === 'true') query = query.eq('is_featured', true)
 
-  if (category) query = query.eq("category_id", category);
-  if (supplier) query = query.eq("supplier_id", supplier);
-  if (active !== null && active !== undefined) query = query.eq("is_active", active === "true");
-  if (featured === "true") query = query.eq("is_featured", true);
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao buscar produtos." }, { status: 500 });
+    return NextResponse.json(check(await query, 'Erro ao buscar produtos.'))
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json(data);
 }
 
 // POST /api/products
-export async function POST(request: Request) {
-  const body = await request.json();
+export async function POST(req: Request) {
+  try {
+    const { supabase } = await requireAdmin(req)
+    const body = pick(await readJson(req), PRODUCT_FIELDS)
+    if (!body.name) throw new HttpError(400, 'Campo obrigatório: name.')
 
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("products")
-    .insert(body)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao criar produto." }, { status: 500 });
+    const data = check(
+      await supabase.from('products').insert(body).select().single(),
+      'Erro ao criar produto.'
+    )
+    return NextResponse.json({ success: true, message: 'Produto criado com sucesso.', data }, { status: 201 })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json({
-    success: true,
-    message: "Produto criado com sucesso.",
-    data,
-  });
 }

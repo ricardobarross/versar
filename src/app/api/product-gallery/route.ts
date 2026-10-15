@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/app/api/admin/auth/route";
+import { requireAdmin } from "@/lib/api";
 
 type ProductGalleryItem = {
   id: string;
@@ -12,35 +11,11 @@ type ProductGalleryItem = {
   updated_at: string;
 };
 
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Configuração do Supabase ausente.");
-  }
-
-  return { url, anonKey };
-}
-
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-
-  return createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
-
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const productId = req.nextUrl.searchParams.get("product_id");
-
-    const supabase = createSupabaseServerClient();
 
     const query = supabase.from("product_gallery").select("*");
 
@@ -74,7 +49,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const body = await req.json();
     const { product_id, image_url, alt_text, position } = body;
@@ -85,8 +60,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("product_gallery")
@@ -123,7 +96,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const body = await req.json();
     const { id, image_url, alt_text, position } = body;
@@ -134,8 +107,6 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("product_gallery")
@@ -173,7 +144,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const id = req.nextUrl.searchParams.get("id");
 
@@ -183,8 +154,6 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     const { error } = await supabase
       .from("product_gallery")
@@ -211,19 +180,5 @@ export async function DELETE(req: NextRequest) {
       { status: error.status || 500 }
     );
   }
-}
-
-export async function OPTIONS() {
-  return NextResponse.json(
-    { success: true },
-    {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Admin-Token",
-      },
-    }
-  );
 }
 

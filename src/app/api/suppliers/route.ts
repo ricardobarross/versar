@@ -1,41 +1,31 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, pick, HttpError } from '@/lib/api'
+import { SUPPLIER_FIELDS } from '@/lib/fields'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+export const dynamic = 'force-dynamic'
+
+// GET /api/suppliers?active=true|false
+export async function GET(req: Request) {
+  try {
+    const { supabase } = await requireAdmin(req)
+    const active = new URL(req.url).searchParams.get('active')
+    let query = supabase.from('suppliers').select('*').order('name')
+    if (active === 'true' || active === 'false') query = query.eq('is_active', active === 'true')
+    return NextResponse.json(check(await query, 'Erro ao buscar fornecedors.'))
+  } catch (err) {
+    return apiError(err)
+  }
 }
 
-export async function GET() {
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("suppliers")
-    .select("*")
-    .order("name", { ascending: true });
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao buscar fornecedores." }, { status: 500 });
+// POST /api/suppliers
+export async function POST(req: Request) {
+  try {
+    const { supabase } = await requireAdmin(req)
+    const body = pick(await readJson(req), SUPPLIER_FIELDS)
+    if (!body.name) throw new HttpError(400, 'Campo obrigatório: name.')
+    const data = check(await supabase.from('suppliers').insert(body).select().single(), 'Erro ao criar fornecedor.')
+    return NextResponse.json({ success: true, data }, { status: 201 })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json(data);
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("suppliers")
-    .insert(body)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao criar fornecedor." }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true, data });
 }

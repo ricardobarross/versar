@@ -1,22 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/app/api/admin/auth/route";
-
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) throw new Error("Configuração do Supabase ausente.");
-  return { url, anonKey };
-}
-
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { requireAdmin } from "@/lib/api";
 
 function diffInDays(date: string | null): number {
   if (!date) return 9999;
@@ -27,7 +12,7 @@ function diffInDays(date: string | null): number {
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const { supabase } = await requireAdmin(req);
 
     const clienteId = req.nextUrl.searchParams.get("cliente_id");
     if (!clienteId) {
@@ -36,8 +21,6 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseServerClient();
 
     // Dados do cliente
     const clienteRes = await supabase
@@ -59,7 +42,7 @@ export async function GET(req: NextRequest) {
       .eq("customer_id", clienteId)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const lastOrder = lastOrderRes.data || null;
     const daysWithoutPurchase = diffInDays(lastOrder?.created_at || null);
@@ -102,7 +85,7 @@ export async function GET(req: NextRequest) {
         cliente: {
           id: cliente.id,
           name: cliente.name,
-          phone: cliente.phone,
+          phone: cliente.whatsapp || cliente.phone,
         },
         analise: {
           days_without_purchase: daysWithoutPurchase,

@@ -1,33 +1,13 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, assertUuid } from '@/lib/api'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-// =====================================
-// DELETE /api/destaques/[id]
-// Remove destaque
-// =====================================
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-
-  const supabase = supabaseServer();
-
-  const { error } = await supabase
-    .from("destaques")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao apagar destaque." }, { status: 500 });
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    check(await supabase.from('destaques').delete().eq('id', params.id), 'Erro ao apagar destaque.')
+    return NextResponse.json({ success: true, message: 'Destaque removido com sucesso.' })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json({
-    success: true,
-    message: "Destaque removido com sucesso.",
-  });
 }

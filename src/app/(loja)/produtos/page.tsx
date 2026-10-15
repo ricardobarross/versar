@@ -1,35 +1,46 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import { CATEGORIA_SELECT, PRODUTO_CARD_SELECT, normalizarProduto, type CategoriaLoja, type ProdutoLoja } from '@/lib/loja'
 
 export const metadata: Metadata = { title: 'Produtos' }
 export const dynamic = 'force-dynamic'
 
-export default async function ProdutosPage() {
+export default async function ProdutosPage({ searchParams }: { searchParams: { q?: string } }) {
   const supabase = createClient()
+  const busca = (searchParams.q ?? '').trim().slice(0, 80)
+  const termo = busca.replace(/[\\%_]/g, m => `\\${m}`)
 
-  const [{ data: produtos }, { data: categorias }] = await Promise.all([
+  let consultaProdutos = supabase
+    .from('products')
+    .select(PRODUTO_CARD_SELECT)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+  if (busca.length >= 2) consultaProdutos = consultaProdutos.ilike('name', `%${termo}%`)
+
+  const [produtosRes, categoriasRes] = await Promise.all([
+    consultaProdutos,
     supabase
-      .from('produtos')
-      .select(`id, nome, slug, preco, preco_promocional, destaque, produto_fotos (url, ordem), categorias (id, nome, slug)`)
-      .eq('ativo', true)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('categorias')
-      .select('id, nome, slug')
-      .eq('ativo', true)
-      .order('nome'),
+      .from('categories')
+      .select(CATEGORIA_SELECT)
+      .eq('is_active', true)
+      .order('name'),
   ])
 
-  const lista = produtos ?? []
-  const cats = categorias ?? []
+  const lista = ((produtosRes.data ?? []) as unknown as ProdutoLoja[]).map(normalizarProduto)
+  const cats = (categoriasRes.data ?? []) as CategoriaLoja[]
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">Produtos</h1>
-        <p className="text-zinc-500 mt-1 text-sm">{lista.length} produto{lista.length !== 1 ? 's' : ''}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
+          {busca.length >= 2 ? <>Resultados para “{busca}”</> : 'Produtos'}
+        </h1>
+        <p className="text-zinc-500 mt-1 text-sm">
+          {lista.length} produto{lista.length !== 1 ? 's' : ''}
+          {busca.length >= 2 && <> · <a href="/produtos" className="underline hover:text-zinc-900">limpar busca</a></>}
+        </p>
       </div>
 
       {cats.length > 0 && (

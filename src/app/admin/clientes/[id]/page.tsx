@@ -9,7 +9,7 @@ export default async function EditCustomerPage({ params }: { params: { id: strin
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">Edit Customer</h1>
+      <h1 className="text-2xl font-bold text-white mb-8">Editar cliente</h1>
       <ClienteForm cliente={customer} />
     </div>
   )

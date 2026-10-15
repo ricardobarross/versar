@@ -7,23 +7,23 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  params: Promise<{ slug: string }>
+  params: { slug: string }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
+  const { slug } = params
   const supabase = createClient()
   const { data: category } = await supabase
     .from('categories')
     .select('name')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
-  return { title: category?.name ?? 'Category' }
+  return { title: category?.name ?? 'Categoria' }
 }
 
-export default async function CategoryPage({ params }: Props) {
-  const { slug } = await params
+export default async function CategoriaPage({ params }: Props) {
+  const { slug } = params
   const supabase = createClient()
 
   const { data: category } = await supabase
@@ -31,7 +31,7 @@ export default async function CategoryPage({ params }: Props) {
     .select('id, name, slug')
     .eq('slug', slug)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
 
   if (!category) notFound()
 
@@ -55,23 +55,23 @@ export default async function CategoryPage({ params }: Props) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
       <nav className="flex items-center gap-2 text-xs text-zinc-400 mb-6 overflow-x-auto scrollbar-hide whitespace-nowrap">
-        <Link href="/" className="hover:text-zinc-700 transition-colors">Home</Link>
+        <Link href="/" className="hover:text-zinc-700 transition-colors">Início</Link>
         <span>/</span>
-        <Link href="/produtos" className="hover:text-zinc-700 transition-colors">Products</Link>
+        <Link href="/produtos" className="hover:text-zinc-700 transition-colors">Produtos</Link>
         <span>/</span>
         <span className="text-zinc-700 font-medium">{category.name}</span>
       </nav>
 
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">{category.name}</h1>
-        <p className="text-zinc-500 mt-1 text-sm">{lista.length} product{lista.length !== 1 ? 's' : ''}</p>
+        <p className="text-zinc-500 mt-1 text-sm">{lista.length} produto{lista.length !== 1 ? 's' : ''}</p>
       </div>
 
       {cats.length > 0 && (
         <div className="flex gap-2 mb-6 sm:mb-8 pb-6 border-b border-zinc-200 overflow-x-auto scrollbar-hide">
           <Link href="/produtos"
             className="flex-shrink-0 px-4 py-2 text-sm font-medium border border-zinc-300 text-zinc-600 hover:border-zinc-900 transition-colors">
-            All
+            Todos
           </Link>
           {cats.map(cat => (
             <Link key={cat.id} href={`/categoria/${cat.slug}`}
@@ -88,9 +88,9 @@ export default async function CategoryPage({ params }: Props) {
 
       {lista.length === 0 && (
         <div className="text-center py-20 text-zinc-400">
-          <p className="text-xl font-medium">No products in this category</p>
+          <p className="text-xl font-medium">Nenhum produto nesta categoria</p>
           <Link href="/produtos" className="mt-4 inline-block text-sm text-zinc-600 underline hover:text-zinc-900">
-            View all products
+            Ver todos os produtos
           </Link>
         </div>
       )}
@@ -116,7 +116,7 @@ export default async function CategoryPage({ params }: Props) {
                     </div>
                   )}
                   {hasPromo && (
-                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5">SALE</div>
+                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5">PROMO</div>
                   )}
                 </div>
                 <h3 className="font-medium text-zinc-900 text-sm line-clamp-2">{product.name}</h3>

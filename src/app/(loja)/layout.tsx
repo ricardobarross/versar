@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import LojaNavbar from '@/components/loja/Navbar'
 import { CarrinhoProvider } from '@/components/loja/CarrinhoContext'
+import { CONFIG_SELECT, type ConfigLoja } from '@/lib/loja'
 
 export default async function LojaLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const { data: config } = await supabase.from('configuracoes_loja').select('*').maybeSingle()
+  const { data } = await supabase.from('store_settings').select(CONFIG_SELECT).maybeSingle()
+  const config = data as ConfigLoja | null
 
   return (
     <CarrinhoProvider>

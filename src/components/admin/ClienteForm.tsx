@@ -70,7 +70,7 @@ export default function ClienteForm({ cliente }: Props) {
               placeholder="+55 81 99999-9999" />
           </div>
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Email</label>
+            <label className="block text-zinc-400 text-sm mb-2">E-mail</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
               placeholder="email@exemplo.com" />

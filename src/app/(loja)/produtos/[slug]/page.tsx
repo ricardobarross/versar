@@ -1,46 +1,56 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import PaginaProduto from '@/components/loja/PaginaProduto'
+import { PRODUTO_DETALHE_SELECT, normalizarProduto, type ProdutoLoja } from '@/lib/loja'
 
 export const dynamic = 'force-dynamic'
 
-interface PageProps {
-  params: Promise<{ slug: string }>
+type PageProps = { params: { slug: string } }
+
+async function buscarProduto(slug: string) {
+  const { data, error } = await createClient()
+    .from('products')
+    .select(PRODUTO_DETALHE_SELECT)
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (error) console.error('[produto]', error.message)
+  return data as unknown as ProdutoLoja | null
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const produto = await buscarProduto(params.slug)
+  if (!produto) return { title: 'Produto não encontrado' }
+  return {
+    title: produto.nome,
+    description: produto.descricao ?? undefined,
+    openGraph: {
+      title: produto.nome,
+      description: produto.descricao ?? undefined,
+      images: produto.produto_fotos?.[0]?.url ? [produto.produto_fotos[0].url] : undefined,
+    },
+  }
 }
 
 export default async function Page({ params }: PageProps) {
-  // 1. Aguarda o slug (obrigatório no Next.js 15)
-  const { slug } = await params
-  const supabase = createClient()
+  const bruto = await buscarProduto(params.slug)
+  if (!bruto) notFound()
 
-  // 2. Consulta usando os nomes exatos das suas colunas
-  const { data: produto, error } = await supabase
-    .from('produtos')
-    .select(`
-      *,
-      categorias (id, nome, slug),
-      produto_fotos (id, url, ordem),
-      produto_variacoes (id, cor, tamanho, estoque)
-    `)
-    .eq('slug', slug)
-    .eq('ativo', true)
-    .single()
-
-  // 3. Tratamento de erro/404
-  if (error || !produto) {
-    console.error('Erro na busca:', error?.message)
-    notFound()
-  }
-
-  // 4. Tradução de dados para o componente visual
+  const produto = normalizarProduto(bruto)
   const produtoFormatado = {
     ...produto,
-    // Converte 'estoque' para 'stock' e garante que as fotos seguem a 'ordem'
-    produto_fotos: produto.produto_fotos?.sort((a: any, b: any) => a.ordem - b.ordem) || [],
-    produto_variacoes: produto.produto_variacoes?.map((v: any) => ({
-      ...v,
-      stock: v.estoque 
-    })) || []
+    descricao: produto.descricao ?? null,
+    ativo: produto.ativo ?? true,
+    produto_fotos: [...(produto.produto_fotos ?? [])]
+      .sort((a, b) => a.ordem - b.ordem)
+      .map(f => ({ id: f.id ?? f.url, url: f.url, principal: !!f.principal })),
+    produto_variacoes: (produto.produto_variacoes ?? []).map(v => ({
+      id: v.id ?? '',
+      cor: v.cor ?? null,
+      tamanho: v.tamanho ?? null,
+      stock: v.estoque,
+    })),
   }
 
   return <PaginaProduto produto={produtoFormatado} />

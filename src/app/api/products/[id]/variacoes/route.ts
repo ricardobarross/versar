@@ -1,84 +1,51 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, assertUuid, HttpError } from '@/lib/api'
 
-// Cria cliente Supabase (server-side)
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+type Ctx = { params: { id: string } }
+
+// GET /api/products/[id]/variacoes
+export async function GET(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id, 'ID do produto')
+    const { supabase } = await requireAdmin(req)
+    const data = check(
+      await supabase.from('product_variations').select('*').eq('product_id', params.id).order('created_at'),
+      'Erro ao buscar variações.'
+    )
+    return NextResponse.json(data)
+  } catch (err) {
+    return apiError(err)
+  }
 }
 
-// =====================================
-// GET /api/produtos/[id]/variacoes
-// Lista todas as variações de um produto
-// =====================================
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+// POST /api/products/[id]/variacoes  { color?, size?, stock?, sku?, price? }
+export async function POST(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id, 'ID do produto')
+    const { supabase } = await requireAdmin(req)
+    const b = await readJson<{ color?: string; size?: string; stock?: number; sku?: string; price?: number }>(req)
+    if (!b.color && !b.size) throw new HttpError(400, 'Informe pelo menos a cor ou o tamanho.')
+    const stock = Number(b.stock ?? 0)
+    if (!Number.isInteger(stock) || stock < 0) throw new HttpError(400, 'Estoque inválido.')
 
-  if (!id || id.length < 10) {
-    return NextResponse.json({ error: "ID do produto inválido." }, { status: 400 });
+    const data = check(
+      await supabase
+        .from('product_variations')
+        .insert({
+          product_id: params.id,
+          color: b.color || null,
+          size: b.size || null,
+          name: [b.color, b.size].filter(Boolean).join(' / ') || null,
+          sku: b.sku || null,
+          price: b.price ?? null,
+          stock,
+        })
+        .select()
+        .single(),
+      'Erro ao criar variação.'
+    )
+    return NextResponse.json({ success: true, message: 'Variação criada com sucesso.', data }, { status: 201 })
+  } catch (err) {
+    return apiError(err)
   }
-
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("produto_variacoes")
-    .select("*")
-    .eq("produto_id", id)
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao buscar variações." }, { status: 500 });
-  }
-
-  return NextResponse.json(data);
-}
-
-// =====================================
-// POST /api/produtos/[id]/variacoes
-// Cria uma nova variação para o produto
-// =====================================
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-
-  if (!id || id.length < 10) {
-    return NextResponse.json({ error: "ID do produto inválido." }, { status: 400 });
-  }
-
-  const body = await request.json();
-  const { cor, tamanho, estoque } = body;
-
-  // Validar campos obrigatórios
-  if (!cor || !tamanho) {
-    return NextResponse.json(
-      { error: "Campos obrigatórios: cor, tamanho." },
-      { status: 400 }
-    );
-  }
-
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("produto_variacoes")
-    .insert({
-      produto_id: id,
-      cor,
-      tamanho,
-      estoque: estoque ?? 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao criar variação." }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: "Variação criada com sucesso.",
-    data,
-  });
 }

@@ -1,170 +1,63 @@
-# 📘 Documentação da API — Loja Ricardo
+# API — VERSAR
 
-API completa para e-commerce, incluindo produtos, pedidos, clientes, fornecedores, uploads, autenticação e webhooks.
+## Autenticação
 
----
+Todas as rotas marcadas com 🔒 exigem um **administrador ativo** (`public.admins`):
 
-## 🔐 Autenticação (Admin)
+- no painel: a sessão do Supabase (cookies) é enviada automaticamente;
+- integrações externas: `Authorization: Bearer <access_token do Supabase>`.
 
-### Login
-`POST /api/auth/login`
+Respostas de erro: `{ "success": false, "error": "mensagem" }` com 400/401/403/404/500.
+Os campos aceites em POST/PUT estão listados em `src/lib/fields.ts`; outros são ignorados.
 
-### Logout
-`POST /api/auth/logout`
+## Públicas
 
-### Verificar sessão
-`GET /api/auth/me`
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/busca?q=` | Produtos ativos cujo nome contém `q` (máx. 20) |
+| POST | `/api/checkout` | Cria o pedido da loja. Corpo: `{ cliente: {nome, whatsapp, email?, cpf?, endereco, cidade, estado, cep}, itens: [{variacaoId, quantidade}] }`. Preço, total e estoque são calculados no servidor. 409 se faltar estoque. |
+| POST | `/api/webhooks` | Eventos externos, assinados com HMAC (ver abaixo) |
 
-### Criar admin
-`POST /api/auth/register`
+## Painel 🔒
 
----
+| Recurso | Rotas |
+|---|---|
+| Produtos | `GET/POST /api/products` · `GET/PUT/DELETE /api/products/{id}` · `POST /api/products/{id}/toggle` (ativa/desativa) |
+| Fotos | `GET/POST /api/products/{id}/fotos` · `GET/POST/PUT/DELETE /api/product-gallery` |
+| Variações | `GET/POST /api/products/{id}/variacoes` · `GET/POST/PUT/DELETE /api/product-variations` |
+| Estoque | `POST /api/products/variacoes/{id}/stock` `{operacao: "add"\|"set", valor}` · `GET/POST/DELETE /api/inventory` |
+| Categorias | `GET/POST/PUT/DELETE /api/categories` |
+| Clientes | `GET/POST /api/customers` · `GET/PUT/DELETE /api/customers/{id}` |
+| Fornecedores | `GET/POST /api/suppliers` · `GET/PUT/DELETE /api/suppliers/{id}` |
+| Pedidos | `GET/POST /api/orders` · `GET/PUT/DELETE /api/orders/{id}` · `GET/PUT /api/orders/{id}/status` |
+| Destaques | `GET/POST /api/destaques` · `DELETE /api/destaques/{id}` |
+| Configurações | `GET/PUT /api/configuracoes-loja` |
+| Upload | `POST /api/upload` (FormData `file`, imagem até 5 MB) |
+| Indicadores | `GET /api/dashboard` · `GET /api/relatorios` |
+| IA | `GET /api/ia/briefing-diario` · `GET /api/ia/sugestoes-cliente?cliente_id=` · `GET /api/secretaria/{cliente\|produto}/{id}` |
 
-## 🛍️ Produtos
+### Status de pedido
 
-### Listar produtos
-`GET /api/produtos`
+`new` · `confirmed` · `paid` · `picking` · `shipped` · `delivered` · `canceled`
+(rótulos em `src/lib/orders.ts`). Cancelar um pedido feito na loja devolve o estoque.
 
-### Criar produto
-`POST /api/produtos`
+## Webhooks
 
-### Buscar produto
-`GET /api/produtos/{id}`
+`POST /api/webhooks` — desligado enquanto `WEBHOOK_SECRET` não estiver definido.
 
-### Atualizar produto
-`PUT /api/produtos/{id}`
+Assine o **corpo bruto** com HMAC-SHA256 e envie o hex em `x-webhook-signature`:
 
-### Remover produto
-`DELETE /api/produtos/{id}`
+```bash
+BODY='{"tipo":"pagamento_aprovado","pedido_id":"<uuid>"}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex | cut -d' ' -f2)
+curl -X POST https://<loja>/api/webhooks -H "content-type: application/json" -H "x-webhook-signature: $SIG" -d "$BODY"
+```
 
----
+| `tipo` | Efeito |
+|---|---|
+| `pagamento_aprovado` | pedido → `paid` |
+| `pagamento_cancelado` | pedido → `canceled` (devolve estoque) |
+| `pedido_enviado` | pedido → `shipped` |
+| `mensagem_whatsapp` | grava `{numero, mensagem}` em `mensagens_whatsapp` |
 
-## ⭐ Destaques
-
-### Listar destaques
-`GET /api/destaques`
-
-### Criar destaque
-`POST /api/destaques`
-
-### Remover destaque
-`DELETE /api/destaques/{id}`
-
----
-
-## 🔎 Busca Avançada
-
-`GET /api/busca`
-
-Parâmetros:
-- `q`
-- `categoria`
-- `fornecedor`
-- `preco_min`
-- `preco_max`
-- `ativo`
-- `ordenar`
-- `direcao`
-- `pagina`
-- `limite`
-
----
-
-## 📦 Pedidos
-
-### Listar pedidos
-`GET /api/pedidos`
-
-### Criar pedido
-`POST /api/pedidos`
-
-### Buscar pedido
-`GET /api/pedidos/{id}`
-
-### Atualizar pedido
-`PUT /api/pedidos/{id}`
-
-### Remover pedido
-`DELETE /api/pedidos/{id}`
-
-### Status do pedido
-`GET /api/pedidos/{id}/status`  
-`PUT /api/pedidos/{id}/status`
-
----
-
-## 👤 Clientes
-
-`GET /api/clientes`  
-`POST /api/clientes`  
-`GET /api/clientes/{id}`  
-`PUT /api/clientes/{id}`  
-`DELETE /api/clientes/{id}`  
-
----
-
-## 🏭 Fornecedores
-
-`GET /api/fornecedores`  
-`POST /api/fornecedores`  
-`GET /api/fornecedores/{id}`  
-`PUT /api/fornecedores/{id}`  
-`DELETE /api/fornecedores/{id}`  
-
----
-
-## 🏪 Configurações da Loja
-
-`GET /api/configuracoes-loja`  
-`PUT /api/configuracoes-loja`  
-
----
-
-## 📤 Upload de Imagens
-
-`POST /api/upload`
-
-Enviar via FormData:
-
-Retorna URL pública.
-
----
-
-## 🔔 Webhooks
-
-`POST /api/webhooks`
-
-Suporta:
-- pagamento_aprovado  
-- pagamento_cancelado  
-- pedido_enviado  
-- mensagem_whatsapp  
-- outros eventos personalizados  
-
-Logs em `webhook_logs`.
-
----
-
-## 📊 Dashboard
-
-`GET /api/dashboard`
-
-Retorna:
-- totalPedidos  
-- totalVendas  
-- totalClientes  
-- pedidosPorStatus  
-- faturamentoUltimos7Dias  
-- topProdutos  
-
----
-
-## 📈 Relatórios
-
-`GET /api/relatorios?tipo=...`
-
-Tipos:
-- vendas_totais  
-- pedidos_por_status  
-- produtos_mais_vendidos  
-- faturamento_por_dia  
+Todos os eventos ficam em `webhook_logs`.

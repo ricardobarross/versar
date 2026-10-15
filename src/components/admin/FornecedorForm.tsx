@@ -32,7 +32,8 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -56,7 +57,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
       <input
         name="name"
-        placeholder="Name"
+        placeholder="Nome"
         value={form.name}
         onChange={handleChange}
         className="input"
@@ -64,7 +65,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
 
       <input
         name="contact"
-        placeholder="Contact"
+        placeholder="Contato"
         value={form.contact}
         onChange={handleChange}
         className="input"
@@ -72,7 +73,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
 
       <input
         name="phone"
-        placeholder="Phone"
+        placeholder="Telefone"
         value={form.phone}
         onChange={handleChange}
         className="input"
@@ -80,7 +81,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
 
       <input
         name="email"
-        placeholder="Email"
+        placeholder="E-mail"
         value={form.email}
         onChange={handleChange}
         className="input"
@@ -88,7 +89,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
 
       <input
         name="address"
-        placeholder="Address"
+        placeholder="Endereço"
         value={form.address}
         onChange={handleChange}
         className="input"
@@ -96,7 +97,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
 
       <textarea
         name="notes"
-        placeholder="Notes"
+        placeholder="Observações"
         value={form.notes}
         onChange={handleChange}
         className="textarea"
@@ -109,7 +110,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
           checked={form.is_active}
           onChange={handleChange}
         />
-        Active
+        Ativo
       </label>
 
       <button type="submit" className="btn-primary">

@@ -1,66 +1,52 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, pick, assertUuid, HttpError } from '@/lib/api'
+import { ORDER_FIELDS } from '@/lib/fields'
+import { isOrderStatus } from '@/lib/orders'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+type Ctx = { params: { id: string } }
+
+export async function GET(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, customers(*), order_items(id, product_id, variation_id, quantity, unit_price, products(name))')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (error) throw new HttpError(500, 'Erro ao buscar pedido.')
+    if (!data) throw new HttpError(404, 'Pedido não encontrado.')
+    return NextResponse.json(data)
+  } catch (err) {
+    return apiError(err)
+  }
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`
-      *,
-      order_items (
-        id,
-        product_id,
-        variation_id,
-        quantity,
-        unit_price
-      )
-    `)
-    .eq("id", params.id)
-    .single();
-
-  if (error || !data) {
-    return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
+// PUT altera os dados do pedido (não os itens nem o total).
+export async function PUT(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    const body = pick(await readJson(req), ORDER_FIELDS)
+    if ('status' in body && !isOrderStatus(body.status)) throw new HttpError(400, 'Status inválido.')
+    const data = check(
+      await supabase.from('orders').update(body).eq('id', params.id).select().single(),
+      'Erro ao atualizar pedido.'
+    )
+    return NextResponse.json({ success: true, message: 'Pedido atualizado com sucesso.', data })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json(data);
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const body = await request.json();
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ ...body, updated_at: new Date().toISOString() })
-    .eq("id", params.id)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar pedido." }, { status: 500 });
+// Os itens são apagados em cascata.
+export async function DELETE(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    check(await supabase.from('orders').delete().eq('id', params.id), 'Erro ao apagar pedido.')
+    return NextResponse.json({ success: true, message: 'Pedido removido com sucesso.' })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json({ success: true, message: "Pedido atualizado com sucesso.", data });
-}
-
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const supabase = supabaseServer();
-
-  await supabase.from("order_items").delete().eq("order_id", params.id);
-
-  const { error } = await supabase.from("orders").delete().eq("id", params.id);
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao apagar pedido." }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true, message: "Pedido removido com sucesso." });
 }

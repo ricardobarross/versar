@@ -2,14 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Plus, Pencil } from 'lucide-react'
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  novo:       { label: 'Novo',       color: 'bg-blue-900 text-blue-400'    },
-  confirmado: { label: 'Confirmado', color: 'bg-yellow-900 text-yellow-400' },
-  separando:  { label: 'Separando',  color: 'bg-orange-900 text-orange-400' },
-  enviado:    { label: 'Enviado',    color: 'bg-purple-900 text-purple-400' },
-  entregue:   { label: 'Entregue',   color: 'bg-green-900 text-green-400'  },
-  cancelado:  { label: 'Cancelado',  color: 'bg-red-900 text-red-400'      },
-}
+import { orderStatusMeta } from '@/lib/orders'
 
 export default async function PedidosPage() {
   const supabase = createClient()
@@ -42,7 +35,7 @@ export default async function PedidosPage() {
       {pedidos && pedidos.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
           {pedidos.map((pedido) => {
-            const status = STATUS_LABELS[pedido.status] ?? STATUS_LABELS.novo
+            const status = orderStatusMeta(pedido.status)
             return (
               <div
                 key={pedido.id}
@@ -58,7 +51,7 @@ export default async function PedidosPage() {
                     <h3 className="text-white font-semibold text-sm truncate">
                       {pedido.customers?.name ?? 'Cliente não identificado'}
                     </h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${status.color}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${status.badge}`}>
                       {status.label}
                     </span>
                   </div>

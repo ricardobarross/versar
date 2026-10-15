@@ -1,22 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import ProdutoCard from '@/components/loja/ProdutoCard'
+import { CATEGORIA_SELECT, CONFIG_SELECT, PRODUTO_CARD_SELECT, normalizarProduto, type CategoriaLoja, type ConfigLoja, type ProdutoLoja } from '@/lib/loja'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LojaPage() {
   const supabase = createClient()
 
-  const [{ data: config }, { data: produtos }, { data: categorias }] = await Promise.all([
-    supabase.from('configuracoes_loja').select('*').maybeSingle(),
-    supabase.from('produtos')
-      .select('*, produto_fotos(*), produto_variacoes(*), categorias(nome)')
-      .eq('ativo', true)
-      .order('destaque', { ascending: false })
+  const [configRes, produtosRes, categoriasRes] = await Promise.all([
+    supabase.from('store_settings').select(CONFIG_SELECT).maybeSingle(),
+    supabase.from('products')
+      .select(PRODUTO_CARD_SELECT)
+      .eq('is_active', true)
+      .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false }),
-    supabase.from('categorias').select('*').eq('ativo', true).order('nome'),
+    supabase.from('categories').select(CATEGORIA_SELECT).eq('is_active', true).order('name'),
   ])
 
-  const destaques = produtos?.filter(p => p.destaque) ?? []
+  const config = configRes.data as ConfigLoja | null
+  const produtos = ((produtosRes.data ?? []) as unknown as ProdutoLoja[]).map(normalizarProduto)
+  const categorias = (categoriasRes.data ?? []) as CategoriaLoja[]
+  const destaques = produtos.filter(p => p.destaque)
 
   return (
     <div>

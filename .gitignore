@@ -36,3 +36,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# arquivos compactados / backups locais
+*.rar
+*.zip
+.env.antigo.local

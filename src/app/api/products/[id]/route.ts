@@ -1,80 +1,49 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server'
+import { requireAdmin, apiError, check, readJson, pick, assertUuid, HttpError } from '@/lib/api'
+import { PRODUCT_FIELDS } from '@/lib/fields'
 
-function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+type Ctx = { params: { id: string } }
+
+export async function GET(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name), suppliers(name), product_variations(*), product_images(*)')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (error) throw new HttpError(500, 'Erro ao buscar produto.')
+    if (!data) throw new HttpError(404, 'Produto não encontrado.')
+    return NextResponse.json(data)
+  } catch (err) {
+    return apiError(err)
+  }
 }
 
-// GET /api/products/[id]
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("products")
-    .select(`
-      *,
-      categories ( name ),
-      suppliers ( name ),
-      product_variations (*),
-      product_images (*)
-    `)
-    .eq("id", id)
-    .single();
-
-  if (error || !data) {
-    return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+export async function PUT(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    const body = pick(await readJson(req), PRODUCT_FIELDS)
+    const data = check(
+      await supabase.from('products').update(body).eq('id', params.id).select().single(),
+      'Erro ao atualizar produto.'
+    )
+    return NextResponse.json({ success: true, message: 'Produto atualizado com sucesso.', data })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json(data);
 }
 
-// PUT /api/products/[id]
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-  const body = await request.json();
-
-  const supabase = supabaseServer();
-
-  const { data, error } = await supabase
-    .from("products")
-    .update(body)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar produto." }, { status: 500 });
+// Fotos e variações são apagadas em cascata (FK on delete cascade).
+export async function DELETE(req: Request, { params }: Ctx) {
+  try {
+    assertUuid(params.id)
+    const { supabase } = await requireAdmin(req)
+    check(await supabase.from('products').delete().eq('id', params.id), 'Erro ao apagar produto.')
+    return NextResponse.json({ success: true, message: 'Produto removido com sucesso.' })
+  } catch (err) {
+    return apiError(err)
   }
-
-  return NextResponse.json({
-    success: true,
-    message: "Produto atualizado com sucesso.",
-    data,
-  });
-}
-
-// DELETE /api/products/[id]
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
-
-  const supabase = supabaseServer();
-
-  await supabase.from("product_images").delete().eq("product_id", id);
-  await supabase.from("product_variations").delete().eq("product_id", id);
-
-  const { error } = await supabase.from("products").delete().eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: "Erro ao apagar produto." }, { status: 500 });
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: "Produto removido com sucesso.",
-  });
 }

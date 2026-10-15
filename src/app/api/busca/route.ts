@@ -1,44 +1,24 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+// GET /api/busca?q=camisa — busca pública de produtos ativos (RLS limita aos ativos)
+export async function GET(req: Request) {
+  const q = (new URL(req.url).searchParams.get('q') ?? '').trim().slice(0, 80)
+  if (q.length < 2) return NextResponse.json({ success: true, results: [] })
 
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) throw new Error("Configuração do Supabase ausente.");
-  return { url, anonKey };
-}
+  // escapa os curingas do LIKE para a pesquisa ser literal
+  const term = q.replace(/[\\%_]/g, m => `\\${m}`)
 
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+  const { data, error } = await createClient()
+    .from('products')
+    .select('id, name, slug, price, promo_price, product_images(url, order)')
+    .eq('is_active', true)
+    .ilike('name', `%${term}%`)
+    .order('name')
+    .limit(20)
 
-export async function GET(req: NextRequest) {
-  try {
-    const q = req.nextUrl.searchParams.get("q") || "";
-
-    const supabase = createSupabaseServerClient();
-
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .ilike("name", `%${q}%`)
-      .order("name", { ascending: true });
-
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, results: data }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message || "Erro na busca." },
-      { status: 500 }
-    );
-  }
+  if (error) return NextResponse.json({ success: false, error: 'Erro na busca.' }, { status: 500 })
+  return NextResponse.json({ success: true, results: data })
 }

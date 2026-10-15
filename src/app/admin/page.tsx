@@ -1,6 +1,7 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { Package, Users, ShoppingBag, TrendingUp, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { OPEN_ORDER_STATUSES, orderStatusMeta } from '@/lib/orders'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,28 +22,12 @@ export default async function AdminDashboard() {
     supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('customers').select('*', { count: 'exact', head: true }),
     supabase.from('orders').select('*', { count: 'exact', head: true }),
-    supabase.from('orders').select('total').eq('status', 'completed').gte('created_at', firstDayOfMonth),
+    supabase.from('orders').select('total').neq('status', 'canceled').gte('created_at', firstDayOfMonth),
     supabase.from('orders').select('id, total, status, created_at, customers(name)').order('created_at', { ascending: false }).limit(8),
-    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', OPEN_ORDER_STATUSES),
   ])
 
   const totalMes = vendasMes?.reduce((acc, o) => acc + Number(o.total), 0) ?? 0
-
-  const statusLabel: Record<string, string> = {
-    pending: 'Pendente',
-    confirmed: 'Confirmado',
-    shipped: 'Enviado',
-    completed: 'Entregue',
-    cancelled: 'Cancelado',
-  }
-
-  const statusColor: Record<string, string> = {
-    pending: 'bg-yellow-500/20 text-yellow-400',
-    confirmed: 'bg-blue-500/20 text-blue-400',
-    shipped: 'bg-purple-500/20 text-purple-400',
-    completed: 'bg-green-500/20 text-green-400',
-    cancelled: 'bg-red-500/20 text-red-400',
-  }
 
   const cards = [
     { label: 'Produtos ativos', value: totalProdutos ?? 0, icon: Package, color: 'bg-blue-500', href: '/admin/produtos' },
@@ -91,8 +76,8 @@ export default async function AdminDashboard() {
                   <p className="text-zinc-500 text-xs">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2 py-1 rounded-full ${statusColor[pedido.status] ?? 'bg-zinc-700 text-zinc-300'}`}>
-                    {statusLabel[pedido.status] ?? pedido.status}
+                  <span className={`text-xs px-2 py-1 rounded-full ${orderStatusMeta(pedido.status).badge}`}>
+                    {orderStatusMeta(pedido.status).label}
                   </span>
                   <span className="text-white text-sm font-semibold">R$ {Number(pedido.total).toFixed(2).replace('.', ',')}</span>
                 </div>

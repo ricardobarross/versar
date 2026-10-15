@@ -13,7 +13,7 @@ export default async function NewOrderPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">New Order</h1>
+      <h1 className="text-2xl font-bold text-white mb-8">Novo pedido</h1>
       <OrderForm customers={customers ?? []} products={products ?? []} />
     </div>
   )

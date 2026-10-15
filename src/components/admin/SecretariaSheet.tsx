@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, Sparkles, Loader2, User, Package } from 'lucide-react'
+import { X, Sparkles, Loader2, Package } from 'lucide-react'
 
 interface SecretariaSheetProps {
   tipo: 'cliente' | 'produto'

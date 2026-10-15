@@ -1,8 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+
+const ERROS: Record<string, string> = {
+  'sem-permissao': 'Esta conta não tem acesso ao painel administrativo.',
+}
+
+/** Só aceita caminhos internos do painel (evita redirecionar para outro site). */
+function destinoSeguro(next: string | null) {
+  return next && next.startsWith('/admin') && !next.startsWith('//') ? next : '/admin'
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -10,7 +19,15 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
+
+  useEffect(() => {
+    const erro = new URLSearchParams(window.location.search).get('erro')
+    if (erro) {
+      setError(ERROS[erro] ?? 'Não foi possível entrar.')
+      supabase.auth.signOut()
+    }
+  }, [supabase])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -18,14 +35,21 @@ export default function LoginPage() {
     setError('')
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     if (error) {
       setError('Email ou senha incorretos.')
       setLoading(false)
       return
     }
 
-    router.push('/admin')
+    const { data: isAdmin } = await supabase.rpc('is_admin')
+    if (!isAdmin) {
+      await supabase.auth.signOut()
+      setError(ERROS['sem-permissao'])
+      setLoading(false)
+      return
+    }
+
+    router.push(destinoSeguro(new URLSearchParams(window.location.search).get('next')))
     router.refresh()
   }
 

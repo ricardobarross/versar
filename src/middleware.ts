@@ -1,53 +1,41 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/**
+ * Renova a sessão do Supabase e protege o /admin.
+ * A verificação de "é admin" fica no layout do /admin (consulta à base).
+ */
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value: '', ...options })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
         },
       },
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // getUser() valida o token no Supabase (getSession() só lê o cookie)
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-  const isLoginRoute = request.nextUrl.pathname.startsWith('/auth/login')
-
-  if (isAdminRoute && !session) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+  const path = request.nextUrl.pathname
+  if (path.startsWith('/admin') && !user) {
+    const url = new URL('/auth/login', request.url)
+    url.searchParams.set('next', path)
+    return NextResponse.redirect(url)
   }
-
-  if (isLoginRoute && session) {
+  // (com ?erro= deixamos a página mostrar a mensagem e terminar a sessão)
+  if (path.startsWith('/auth/login') && user && !request.nextUrl.searchParams.has('erro')) {
     return NextResponse.redirect(new URL('/admin', request.url))
   }
 

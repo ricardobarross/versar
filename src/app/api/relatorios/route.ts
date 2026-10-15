@@ -1,28 +1,11 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { requireAdmin } from "@/app/api/admin/auth/route";
-
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) throw new Error("Configuração do Supabase ausente.");
-  return { url, anonKey };
-}
-
-function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
-  return createClient(url, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { requireAdmin } from "@/lib/api";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin(req);
-
-    const supabase = createSupabaseServerClient();
+    const { supabase } = await requireAdmin(req);
     const url = req.nextUrl;
 
     const dataInicio = url.searchParams.get("data_inicio");
@@ -32,7 +15,6 @@ export async function GET(req: NextRequest) {
     const categoriaId = url.searchParams.get("categoria_id");
     const status = url.searchParams.get("status");
     const origin = url.searchParams.get("origem");
-    const vendedorId = url.searchParams.get("vendedor_id");
     const ticketMin = url.searchParams.get("ticket_min");
     const ticketMax = url.searchParams.get("ticket_max");
 
@@ -62,7 +44,6 @@ export async function GET(req: NextRequest) {
     if (clienteId) query = query.eq("customer_id", clienteId);
     if (status) query = query.eq("status", status);
     if (origin) query = query.eq("origin", origin);
-    if (vendedorId) query = query.eq("vendedor_id", vendedorId);
     if (ticketMin) query = query.gte("total", Number(ticketMin));
     if (ticketMax) query = query.lte("total", Number(ticketMax));
 
@@ -85,7 +66,7 @@ export async function GET(req: NextRequest) {
     }
 
     const totalPedidos = filtered.length;
-    const totalVendido = filtered.reduce((acc: number, p: any) => acc + p.total, 0);
+    const totalVendido = filtered.reduce((acc: number, p: any) => acc + Number(p.total), 0);
     const ticketMedio = totalPedidos > 0 ? totalVendido / totalPedidos : 0;
 
     return NextResponse.json({
