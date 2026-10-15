@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Plus, Pencil } from 'lucide-react'
 
 import { ORDER_STATUSES, ORDER_STATUS_META, isOrderStatus, orderStatusMeta, formatBRL } from '@/lib/orders'
+import { formatarData } from '@/lib/datas'
 
 const ORIGENS: Record<string, string> = { loja_online: 'Loja online', painel: 'Painel', whatsapp: 'WhatsApp' }
 
@@ -112,7 +113,7 @@ export default async function PedidosPage(props: { searchParams: Promise<{ statu
                       <span className="text-zinc-400 text-xs">{pedido.customers.whatsapp}</span>
                     )}
                     <span className="text-zinc-400 text-xs">
-                      {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
+                      {formatarData(pedido.created_at)}
                     </span>
                     {pedido.origin && (
                       <span className="text-zinc-400 text-xs">{ORIGENS[pedido.origin] ?? pedido.origin}</span>

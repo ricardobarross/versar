@@ -2,14 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { Package, Users, ShoppingBag, TrendingUp, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { OPEN_ORDER_STATUSES, orderStatusMeta } from '@/lib/orders'
+import { formatarData, inicioDoMes } from '@/lib/datas'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
 
-  const now = new Date()
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const firstDayOfMonth = inicioDoMes(0) // 00:00 do dia 1 em Brasília
 
   const [
     { count: totalProdutos },
@@ -73,7 +73,7 @@ export default async function AdminDashboard() {
               <div key={pedido.id} className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0">
                 <div>
                   <p className="text-white text-sm font-medium">{pedido.customers?.name ?? 'Cliente'}</p>
-                  <p className="text-zinc-500 text-xs">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-zinc-500 text-xs">{formatarData(pedido.created_at)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs px-2 py-1 rounded-full ${orderStatusMeta(pedido.status).badge}`}>

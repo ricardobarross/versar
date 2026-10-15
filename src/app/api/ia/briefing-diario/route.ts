@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api";
+import { hojeNaLoja } from "@/lib/datas";
 
 type ContaPagar = {
   id: string;
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
     const { supabase } = await requireAdmin(req);
 
     // Contas a pagar pendentes ou vencendo hoje
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = hojeNaLoja();
 
     const contasPromise = supabase
       .from("accounts_payable")

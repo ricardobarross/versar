@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { TrendingUp, Package, ShoppingBag, Users } from 'lucide-react'
 import { orderStatusMeta } from '@/lib/orders'
+import { inicioDoMes } from '@/lib/datas'
 
 export default async function ReportsPage() {
   const supabase = await createClient()
 
-  const hoje = new Date()
-  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString()
-  const inicioMesPassado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1).toISOString()
-  const fimMesPassado = new Date(hoje.getFullYear(), hoje.getMonth(), 0).toISOString()
+  // limites dos meses no fuso de Brasília
+  const inicioMes = inicioDoMes(0)
+  const inicioMesPassado = inicioDoMes(-1)
 
   const [
     { data: ordersMes },
@@ -17,8 +17,9 @@ export default async function ReportsPage() {
     { count: totalCustomers },
   ] = await Promise.all([
     supabase.from('orders').select('total, status, created_at').gte('created_at', inicioMes).neq('status', 'canceled'),
-    supabase.from('orders').select('total').gte('created_at', inicioMesPassado).lte('created_at', fimMesPassado).neq('status', 'canceled'),
-    supabase.from('order_items').select('quantity, price, products(name)').limit(50),
+    supabase.from('orders').select('total').gte('created_at', inicioMesPassado).lt('created_at', inicioMes).neq('status', 'canceled'),
+    // mais vendidos: todos os itens de pedidos não cancelados
+    supabase.from('order_items').select('quantity, unit_price, products(name), orders!inner(status)').neq('orders.status', 'canceled').limit(5000),
     supabase.from('customers').select('*', { count: 'exact', head: true }),
   ])
 
@@ -33,7 +34,7 @@ export default async function ReportsPage() {
     const name = item.products?.name ?? 'Desconhecido'
     if (!salesMap[name]) salesMap[name] = { name, quantity: 0, total: 0 }
     salesMap[name].quantity += item.quantity
-    salesMap[name].total += item.quantity * Number(item.price)
+    salesMap[name].total += item.quantity * Number(item.unit_price)
   })
   const ranking = Object.values(salesMap).sort((a, b) => b.quantity - a.quantity).slice(0, 10)
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdmin, apiError, assertUuid } from '@/lib/api'
 import { askClaude } from '@/lib/ai'
 import { OPEN_ORDER_STATUSES, type OrderStatus } from '@/lib/orders'
+import { formatarData } from '@/lib/datas'
 
 export async function GET(
   request: Request,
@@ -34,7 +35,7 @@ export async function GET(
 
     if (ultimoOrderRaw) {
       const data = new Date(ultimoOrderRaw.created_at)
-      ultimoPedido = data.toLocaleDateString('pt-BR')
+      ultimoPedido = formatarData(data)
       diasSemComprar = Math.floor((Date.now() - data.getTime()) / (1000 * 60 * 60 * 24))
     }
 

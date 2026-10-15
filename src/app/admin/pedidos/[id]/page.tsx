@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PedidoForm, { type PedidoExistente } from '@/components/admin/PedidoForm'
 import { orderStatusMeta } from '@/lib/orders'
+import { formatarDataHora } from '@/lib/datas'
 
 export const metadata = { title: 'Pedido' }
 
@@ -30,7 +31,7 @@ export default async function EditarPedidoPage(props: { params: Promise<{ id: st
         <h1 className="text-2xl font-bold text-white">Pedido #{order.numero}</h1>
         <span className={`text-xs px-2 py-1 rounded-full ${status.badge}`}>{status.label}</span>
         <span className="text-zinc-500 text-sm">
-          {ORIGENS[order.origin] ?? order.origin} · {new Date(order.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+          {ORIGENS[order.origin] ?? order.origin} · {formatarDataHora(order.created_at)}
         </span>
       </div>
       <PedidoForm order={order as unknown as PedidoExistente} customers={customers ?? []} products={[]} />
