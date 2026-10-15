@@ -47,7 +47,7 @@ export async function PUT(
   }
 }
 
-// Os itens são apagados em cascata.
+// Os itens são apagados em cascata; o estoque reservado volta antes de apagar.
 export async function DELETE(
   req: Request,
   ctx: Ctx
@@ -56,6 +56,12 @@ export async function DELETE(
   try {
     assertUuid(params.id)
     const { supabase } = await requireAdmin(req)
+    // se o pedido reservou estoque, cancelar primeiro devolve as peças (trigger)
+    const { data: pedido } = await supabase.from('orders').select('status, stock_reserved').eq('id', params.id).maybeSingle()
+    if (!pedido) throw new HttpError(404, 'Pedido não encontrado.')
+    if (pedido.stock_reserved && pedido.status !== 'canceled') {
+      check(await supabase.from('orders').update({ status: 'canceled' }).eq('id', params.id), 'Erro ao devolver o estoque.')
+    }
     check(await supabase.from('orders').delete().eq('id', params.id), 'Erro ao apagar pedido.')
     return NextResponse.json({ success: true, message: 'Pedido removido com sucesso.' })
   } catch (err) {

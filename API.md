@@ -29,7 +29,7 @@ Os campos aceites em POST/PUT estão listados em `src/lib/fields.ts`; outros sã
 | Categorias | `GET/POST/PUT/DELETE /api/categories` |
 | Clientes | `GET/POST /api/customers` · `GET/PUT/DELETE /api/customers/{id}` |
 | Fornecedores | `GET/POST /api/suppliers` · `GET/PUT/DELETE /api/suppliers/{id}` |
-| Pedidos | `GET/POST /api/orders` · `GET/PUT/DELETE /api/orders/{id}` · `GET/PUT /api/orders/{id}/status` |
+| Pedidos | `GET/POST /api/orders` (POST dá baixa no estoque) · `GET/PUT/DELETE /api/orders/{id}` · `GET/PUT /api/orders/{id}/status` |
 | Destaques | `GET/POST /api/destaques` · `DELETE /api/destaques/{id}` |
 | Configurações | `GET/PUT /api/configuracoes-loja` |
 | Upload | `POST /api/upload` (FormData `file`, imagem até 5 MB) |

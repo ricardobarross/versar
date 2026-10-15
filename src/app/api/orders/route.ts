@@ -21,57 +21,47 @@ export async function GET(req: Request) {
 
 type NewItem = { product_id?: string; variation_id?: string | null; quantity?: number; unit_price?: number }
 
-// POST /api/orders  { customer_id?, status?, payment_method?, origin?, notes?, items: [{ product_id, variation_id?, quantity, unit_price }] }
+// POST /api/orders  { customer_id?, status?, payment_method?, notes?, items: [{ product_id, variation_id?, quantity, unit_price? }] }
+// Usa a mesma função do painel: valida e dá baixa no estoque numa transação.
 export async function POST(req: Request) {
   try {
     const { supabase } = await requireAdmin(req)
     const body = await readJson<{
-      customer_id?: string; status?: string; payment_method?: string; origin?: string; notes?: string; items?: NewItem[]
+      customer_id?: string; status?: string; payment_method?: string; notes?: string; items?: NewItem[]
     }>(req)
 
     const items = Array.isArray(body.items) ? body.items : []
     if (items.length === 0) throw new HttpError(400, 'O pedido deve conter pelo menos 1 item.')
     for (const it of items) {
       if (!it.product_id || !UUID_RE.test(it.product_id)) throw new HttpError(400, 'Item com product_id inválido.')
+      if (it.variation_id && !UUID_RE.test(it.variation_id)) throw new HttpError(400, 'Item com variation_id inválido.')
       if (!Number.isInteger(it.quantity) || (it.quantity ?? 0) <= 0) throw new HttpError(400, 'Quantidade inválida.')
-      if (typeof it.unit_price !== 'number' || it.unit_price < 0) throw new HttpError(400, 'Preço unitário inválido.')
+      if (it.unit_price !== undefined && (typeof it.unit_price !== 'number' || it.unit_price < 0)) {
+        throw new HttpError(400, 'Preço unitário inválido.')
+      }
     }
-    if (body.status && !isOrderStatus(body.status)) throw new HttpError(400, 'Status inválido.')
+    if (body.status && (!isOrderStatus(body.status) || body.status === 'canceled')) throw new HttpError(400, 'Status inválido.')
 
-    const total = items.reduce((acc, it) => acc + it.unit_price! * it.quantity!, 0)
-
-    const order = check(
-      await supabase
-        .from('orders')
-        .insert({
-          customer_id: body.customer_id ?? null,
-          status: body.status ?? 'new',
-          payment_method: body.payment_method ?? null,
-          origin: body.origin ?? 'whatsapp',
-          notes: body.notes ?? null,
-          total: Math.round(total * 100) / 100,
-        })
-        .select('id, numero')
-        .single<{ id: string; numero: number }>(),
-      'Erro ao criar pedido.'
-    )
-    if (!order) throw new HttpError(500, 'Erro ao criar pedido.')
-
-    const { error: itemsError } = await supabase.from('order_items').insert(
-      items.map(it => ({
-        order_id: order.id,
-        product_id: it.product_id,
-        variation_id: it.variation_id ?? null,
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-      }))
-    )
-    if (itemsError) {
-      await supabase.from('orders').delete().eq('id', order.id)
-      throw new HttpError(500, 'Erro ao gravar os itens do pedido.')
+    const { data, error } = await supabase.rpc('admin_create_order', {
+      p_customer_id: body.customer_id ?? null,
+      p_status: body.status ?? 'new',
+      p_payment_method: body.payment_method ?? null,
+      p_notes: body.notes ?? null,
+      p_items: items,
+    })
+    if (error) {
+      if (error.message.includes('ORDER:OUT_OF_STOCK')) {
+        throw new HttpError(409, `Estoque insuficiente: ${error.message.split('ORDER:OUT_OF_STOCK:')[1]}`)
+      }
+      if (error.message.includes('ORDER:UNAVAILABLE')) throw new HttpError(409, 'Produto ou variação inexistente.')
+      throw new HttpError(500, 'Erro ao criar pedido.')
     }
 
-    return NextResponse.json({ success: true, message: 'Pedido criado com sucesso.', order_id: order.id, numero: order.numero }, { status: 201 })
+    const pedido = data as { order_id: string; numero: number; total: number }
+    return NextResponse.json(
+      { success: true, message: 'Pedido criado com sucesso.', order_id: pedido.order_id, numero: pedido.numero, total: Number(pedido.total) },
+      { status: 201 }
+    )
   } catch (err) {
     return apiError(err)
   }

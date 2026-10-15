@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import PaginaProduto from '@/components/loja/PaginaProduto'
+import { siteUrl } from '@/lib/site'
 import { PRODUTO_DETALHE_SELECT, normalizarProduto, type ProdutoLoja } from '@/lib/loja'
 
 export const dynamic = 'force-dynamic'
@@ -54,5 +55,32 @@ export default async function Page({ params }: PageProps) {
     })),
   }
 
-  return <PaginaProduto produto={produtoFormatado} />
+  const estoque = produtoFormatado.produto_variacoes.reduce((acc, v) => acc + (v.stock || 0), 0)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: produto.nome,
+    description: produto.descricao ?? undefined,
+    image: produtoFormatado.produto_fotos.map(f => f.url),
+    category: produto.categorias?.nome,
+    brand: { '@type': 'Brand', name: 'VERSAR' },
+    offers: {
+      '@type': 'Offer',
+      url: `${siteUrl()}/produtos/${produto.slug}`,
+      priceCurrency: 'BRL',
+      price: (produto.preco_promocional ?? produto.preco).toFixed(2),
+      availability: estoque > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        // JSON.stringify + troca de "<" evita fechar a tag com dados do produto
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
+      <PaginaProduto produto={produtoFormatado} />
+    </>
+  )
 }

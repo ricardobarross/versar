@@ -81,3 +81,17 @@ export function normalizarProduto<T extends { preco: unknown; preco_promocional:
     preco_promocional: p.preco_promocional == null ? null : Number(p.preco_promocional),
   }
 }
+
+/** Links das redes a partir do que foi escrito nas configurações ("@versar", "versar", URL…). */
+export function linksSociais(config: Pick<ConfigLoja, 'whatsapp' | 'instagram' | 'facebook'> | null) {
+  const whatsapp = (config?.whatsapp ?? '').replace(/\D/g, '')
+  const insta = (config?.instagram ?? '').trim()
+  const face = (config?.facebook ?? '').trim()
+  const url = (v: string, base: string) =>
+    /^https?:\/\//i.test(v) ? v : v.includes('.') ? `https://${v.replace(/^\/+/, '')}` : `${base}${v.replace(/^@/, '')}`
+  return {
+    whatsapp: whatsapp.length >= 10 ? `https://wa.me/${whatsapp}` : null,
+    instagram: insta ? url(insta, 'https://instagram.com/') : null,
+    facebook: face ? url(face, 'https://facebook.com/') : null,
+  }
+}

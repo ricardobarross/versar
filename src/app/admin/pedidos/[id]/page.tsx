@@ -1,32 +1,39 @@
-import { createClient } from '@/lib/supabase/server'
-import OrderForm from '@/components/admin/PedidoForm'
 import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import PedidoForm, { type PedidoExistente } from '@/components/admin/PedidoForm'
+import { orderStatusMeta } from '@/lib/orders'
 
-export default async function EditOrderPage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params
+export const metadata = { title: 'Pedido' }
+
+const ORIGENS: Record<string, string> = { loja_online: 'Loja online', painel: 'Painel', whatsapp: 'WhatsApp' }
+
+export default async function EditarPedidoPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params
   const supabase = await createClient()
 
-  const { data: order } = await supabase
-    .from('orders')
-    .select('*, customers(*), order_items(*, products(*))')
-    .eq('id', params.id)
-    .single()
+  const [{ data: order }, { data: customers }] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('id, numero, customer_id, status, payment_method, notes, origin, stock_reserved, total, created_at, order_items(product_id, variation_id, quantity, unit_price, price, products(name), product_variations(color, size))')
+      .eq('id', id)
+      .maybeSingle(),
+    supabase.from('customers').select('id, name, whatsapp').order('name'),
+  ])
 
   if (!order) notFound()
 
-  const { data: customers } = await supabase.from('customers').select('*').order('name')
-  const { data: products } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('name')
+  const status = orderStatusMeta(order.status)
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">
-        Order #{order.id.slice(0, 8).toUpperCase()}
-      </h1>
-      <OrderForm order={order} customers={customers ?? []} products={products ?? []} />
+      <div className="flex flex-wrap items-center gap-3 mb-8">
+        <h1 className="text-2xl font-bold text-white">Pedido #{order.numero}</h1>
+        <span className={`text-xs px-2 py-1 rounded-full ${status.badge}`}>{status.label}</span>
+        <span className="text-zinc-500 text-sm">
+          {ORIGENS[order.origin] ?? order.origin} · {new Date(order.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+        </span>
+      </div>
+      <PedidoForm order={order as unknown as PedidoExistente} customers={customers ?? []} products={[]} />
     </div>
   )
 }
