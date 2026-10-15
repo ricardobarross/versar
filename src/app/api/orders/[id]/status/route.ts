@@ -47,4 +47,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar status." }, { status: 500
+    return NextResponse.json({ error: "Erro ao atualizar status." }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: "Status atualizado com sucesso.",
+    data,
+  });
+}
