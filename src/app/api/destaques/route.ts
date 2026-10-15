@@ -8,10 +8,6 @@ function supabaseServer() {
   );
 }
 
-// =====================================
-// GET /api/destaques
-// Lista todos os destaques com dados do produto
-// =====================================
 export async function GET() {
   const supabase = supabaseServer();
 
@@ -19,10 +15,10 @@ export async function GET() {
     .from("destaques")
     .select(`
       *,
-      produtos (
-        nome,
-        preco,
-        ativo
+      products (
+        name,
+        price,
+        is_active
       )
     `)
     .order("ordem", { ascending: true });
@@ -34,19 +30,12 @@ export async function GET() {
   return NextResponse.json(data);
 }
 
-// =====================================
-// POST /api/destaques
-// Cria um novo destaque
-// =====================================
 export async function POST(request: Request) {
   const body = await request.json();
-  const { produto_id, ordem, ativo } = body;
+  const { product_id, ordem, ativo } = body;
 
-  if (!produto_id) {
-    return NextResponse.json(
-      { error: "Campo obrigatório: produto_id." },
-      { status: 400 }
-    );
+  if (!product_id) {
+    return NextResponse.json({ error: "Campo obrigatório: product_id." }, { status: 400 });
   }
 
   const supabase = supabaseServer();
@@ -54,7 +43,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("destaques")
     .insert({
-      produto_id,
+      product_id,
       ordem: ordem ?? 0,
       ativo: ativo ?? true,
       created_at: new Date().toISOString(),
@@ -66,9 +55,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro ao criar destaque." }, { status: 500 });
   }
 
-  return NextResponse.json({
-    success: true,
-    message: "Destaque criado com sucesso.",
-    data,
-  });
+  return NextResponse.json({ success: true, message: "Destaque criado com sucesso.", data });
 }

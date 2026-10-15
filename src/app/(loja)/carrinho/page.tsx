@@ -1,6 +1,6 @@
 'use client'
 
-import { useCarrinho } from '@/components/loja/CarrinhoContext'
+import { useCart } from '@/components/loja/CarrinhoContext'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -10,18 +10,18 @@ function formatBRL(value: number) {
   return `R$ ${value.toFixed(2).replace('.', ',')}`
 }
 
-export default function CarrinhoPage() {
-  const { itens, totalItens, totalPreco, removerItem, alterarQuantidade, limparCarrinho } = useCarrinho()
+export default function CartPage() {
+  const { itens, totalItens, totalPreco, removerItem, alterarQuantidade, limparCarrinho } = useCart()
   const router = useRouter()
 
   if (itens.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center px-4">
         <ShoppingBag className="w-16 h-16 text-zinc-300" />
-        <p className="text-xl font-semibold text-zinc-700">O seu carrinho está vazio</p>
-        <p className="text-zinc-400 text-sm">Adicione produtos para continuar</p>
+        <p className="text-xl font-semibold text-zinc-700">Your cart is empty</p>
+        <p className="text-zinc-400 text-sm">Add products to continue</p>
         <Link href="/produtos" className="mt-2 bg-zinc-900 text-white px-6 py-3 rounded-full font-semibold hover:bg-zinc-700 transition-colors">
-          Ver produtos
+          View products
         </Link>
       </div>
     )
@@ -31,13 +31,13 @@ export default function CarrinhoPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
       <div className="flex items-center justify-between mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
-          Carrinho
+          Cart
           <span className="text-zinc-400 text-base sm:text-lg font-normal ml-2">
-            ({totalItens} {totalItens === 1 ? 'item' : 'itens'})
+            ({totalItens} {totalItens === 1 ? 'item' : 'items'})
           </span>
         </h1>
         <button onClick={limparCarrinho} className="text-xs sm:text-sm text-zinc-400 hover:text-zinc-600 transition-colors">
-          Limpar tudo
+          Clear all
         </button>
       </div>
 
@@ -71,17 +71,17 @@ export default function CarrinhoPage() {
       <div className="mt-6 sm:mt-8 border-t border-zinc-100 pt-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <Link href="/produtos" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
-            ← Continuar comprando
+            ← Continue shopping
           </Link>
           <div className="sm:text-right">
             <p className="text-zinc-500 text-sm">Total</p>
             <p className="text-3xl font-bold text-zinc-900">{formatBRL(totalPreco)}</p>
-            <p className="text-xs text-zinc-400 mt-1">Frete calculado no checkout</p>
+            <p className="text-xs text-zinc-400 mt-1">Shipping calculated at checkout</p>
             <button
               onClick={() => router.push('/checkout')}
               className="mt-3 w-full sm:w-auto bg-zinc-900 hover:bg-zinc-700 text-white font-semibold px-8 py-3 rounded-full transition-colors"
             >
-              Finalizar pedido
+              Checkout
             </button>
           </div>
         </div>

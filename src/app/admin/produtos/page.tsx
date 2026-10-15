@@ -5,12 +5,12 @@ export default async function ProdutosPage() {
   const supabase = createClient()
 
   const { data: produtos } = await supabase
-    .from('produtos')
+    .from('products')
     .select(`
       *,
-      produto_fotos (url, ordem),
-      produto_variacoes (estoque),
-      categorias (nome)
+      product_images (url, ordem),
+      product_variations (stock),
+      categories (name)
     `)
     .order('created_at', { ascending: false })
 

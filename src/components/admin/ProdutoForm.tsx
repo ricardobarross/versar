@@ -4,93 +4,84 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Trash2, Plus, Upload, X } from 'lucide-react'
-import type { Categoria, Fornecedor, Produto, ProdutoVariacao } from '@/types'
+import type { Category, Supplier, Product, ProductVariation } from '@/types'
 
 type Props = {
-  categorias: Categoria[]
-  fornecedores: Fornecedor[]
-  produto?: Produto & { produto_variacoes?: ProdutoVariacao[] }
+  categories: Category[]
+  suppliers: Supplier[]
+  product?: Product & { product_variations?: ProductVariation[] }
 }
 
-type Variacao = {
+type Variation = {
   id?: string
-  cor: string
-  tamanho: string
-  estoque: number
+  color: string
+  size: string
+  stock: number
 }
 
-type FotoPreview = {
+type PhotoPreview = {
   file?: File
   url: string
   id?: string
 }
 
-export default function ProdutoForm({ categorias, fornecedores, produto }: Props) {
+export default function ProductForm({ categories, suppliers, product }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [erro, setErro] = useState('')
+  const [error, setError] = useState('')
 
-  // Campos principais
-  const [nome, setNome] = useState(produto?.nome ?? '')
-  const [descricao, setDescricao] = useState(produto?.descricao ?? '')
-  const [preco, setPreco] = useState(produto?.preco?.toString() ?? '')
-  const [precoPromocional, setPrecoPromocional] = useState(
-    produto?.preco_promocional?.toString() ?? ''
-  )
-  const [categoriaId, setCategoriaId] = useState(produto?.categoria_id ?? '')
-  const [fornecedorId, setFornecedorId] = useState(produto?.fornecedor_id ?? '')
-  const [ativo, setAtivo] = useState(produto?.ativo ?? true)
-  const [destaque, setDestaque] = useState(produto?.destaque ?? false)
+  const [name, setName] = useState(product?.name ?? '')
+  const [description, setDescription] = useState(product?.description ?? '')
+  const [price, setPrice] = useState(product?.price?.toString() ?? '')
+  const [promoPrice, setPromoPrice] = useState(product?.promo_price?.toString() ?? '')
+  const [categoryId, setCategoryId] = useState(product?.category_id ?? '')
+  const [supplierId, setSupplierId] = useState(product?.supplier_id ?? '')
+  const [isActive, setIsActive] = useState(product?.is_active ?? true)
+  const [isFeatured, setIsFeatured] = useState(product?.is_featured ?? false)
 
-  // Fotos
-  const [fotos, setFotos] = useState<FotoPreview[]>(
-    produto?.produto_fotos?.map(f => ({ url: f.url, id: f.id })) ?? []
+  const [photos, setPhotos] = useState<PhotoPreview[]>(
+    product?.product_images?.map((f: any) => ({ url: f.url, id: f.id })) ?? []
   )
 
-  // Variações
-  const [variacoes, setVariacoes] = useState<Variacao[]>(
-    produto?.produto_variacoes?.map(v => ({
+  const [variations, setVariations] = useState<Variation[]>(
+    product?.product_variations?.map(v => ({
       id: v.id,
-      cor: v.cor ?? '',
-      tamanho: v.tamanho ?? '',
-      estoque: v.estoque,
-    })) ?? [{ cor: '', tamanho: '', estoque: 0 }]
+      color: v.color ?? '',
+      size: v.size ?? '',
+      stock: v.stock,
+    })) ?? [{ color: '', size: '', stock: 0 }]
   )
 
-  function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
-    const novas = files.map(file => ({
-      file,
-      url: URL.createObjectURL(file),
-    }))
-    setFotos(prev => [...prev, ...novas])
+    const newPhotos = files.map(file => ({ file, url: URL.createObjectURL(file) }))
+    setPhotos(prev => [...prev, ...newPhotos])
   }
 
-  function removerFoto(index: number) {
-    setFotos(prev => prev.filter((_, i) => i !== index))
+  function removePhoto(index: number) {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
   }
 
-  function adicionarVariacao() {
-    setVariacoes(prev => [...prev, { cor: '', tamanho: '', estoque: 0 }])
+  function addVariation() {
+    setVariations(prev => [...prev, { color: '', size: '', stock: 0 }])
   }
 
-  function removerVariacao(index: number) {
-    setVariacoes(prev => prev.filter((_, i) => i !== index))
+  function removeVariation(index: number) {
+    setVariations(prev => prev.filter((_, i) => i !== index))
   }
 
-  function atualizarVariacao(index: number, campo: keyof Variacao, valor: string | number) {
-    setVariacoes(prev => prev.map((v, i) => i === index ? { ...v, [campo]: valor } : v))
+  function updateVariation(index: number, field: keyof Variation, value: string | number) {
+    setVariations(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setErro('')
+    setError('')
 
     try {
-      // Gerar slug
-      const slug = nome
+      const slug = name
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -98,71 +89,64 @@ export default function ProdutoForm({ categorias, fornecedores, produto }: Props
         .replace(/(^-|-$)/g, '')
         + '-' + Date.now()
 
-      // 1. Criar ou atualizar o produto
-      let produtoId = produto?.id
+      let productId = product?.id
 
-      if (produtoId) {
-        await supabase.from('produtos').update({
-          nome, descricao, slug,
-          preco: parseFloat(preco),
-          preco_promocional: precoPromocional ? parseFloat(precoPromocional) : null,
-          categoria_id: categoriaId || null,
-          fornecedor_id: fornecedorId || null,
-          ativo, destaque,
-        }).eq('id', produtoId)
-      } else {
-        const { data, error } = await supabase.from('produtos').insert({
-          nome, descricao, slug,
-          preco: parseFloat(preco),
-          preco_promocional: precoPromocional ? parseFloat(precoPromocional) : null,
-          categoria_id: categoriaId || null,
-          fornecedor_id: fornecedorId || null,
-          ativo, destaque,
-        }).select().single()
-
-        if (error) throw error
-        produtoId = data.id
+      const productData = {
+        name,
+        description,
+        slug,
+        price: parseFloat(price),
+        promo_price: promoPrice ? parseFloat(promoPrice) : null,
+        category_id: categoryId || null,
+        supplier_id: supplierId || null,
+        is_active: isActive,
+        is_featured: isFeatured,
       }
 
-      // 2. Upload das fotos novas
-      const fotosNovas = fotos.filter(f => f.file)
-      for (let i = 0; i < fotosNovas.length; i++) {
-        const foto = fotosNovas[i]
-        if (!foto.file) continue
+      if (productId) {
+        await supabase.from('products').update(productData).eq('id', productId)
+      } else {
+        const { data, error: insertError } = await supabase
+          .from('products').insert(productData).select().single()
+        if (insertError) throw insertError
+        productId = data.id
+      }
 
-        const ext = foto.file.name.split('.').pop()
-        const path = `produtos/${produtoId}/${Date.now()}-${i}.${ext}`
+      // Upload new photos
+      const newPhotos = photos.filter(f => f.file)
+      for (let i = 0; i < newPhotos.length; i++) {
+        const photo = newPhotos[i]
+        if (!photo.file) continue
+        const ext = photo.file.name.split('.').pop()
+        const path = `products/${productId}/${Date.now()}-${i}.${ext}`
 
         const { error: uploadError } = await supabase.storage
-          .from('versar-fotos')
-          .upload(path, foto.file)
-
+          .from('versar-photos').upload(path, photo.file)
         if (uploadError) throw uploadError
 
         const { data: urlData } = supabase.storage
-          .from('versar-fotos')
-          .getPublicUrl(path)
+          .from('versar-photos').getPublicUrl(path)
 
-        await supabase.from('produto_fotos').insert({
-          produto_id: produtoId,
+        await supabase.from('product_images').insert({
+          product_id: productId,
           url: urlData.publicUrl,
-          ordem: i,
+          order: i,
         })
       }
 
-      // 3. Salvar variações
-      if (produto?.id) {
-        await supabase.from('produto_variacoes').delete().eq('produto_id', produtoId)
+      // Save variations
+      if (product?.id) {
+        await supabase.from('product_variations').delete().eq('product_id', productId)
       }
 
-      const variacoesValidas = variacoes.filter(v => v.cor || v.tamanho)
-      if (variacoesValidas.length > 0) {
-        await supabase.from('produto_variacoes').insert(
-          variacoesValidas.map(v => ({
-            produto_id: produtoId,
-            cor: v.cor || null,
-            tamanho: v.tamanho || null,
-            estoque: v.estoque,
+      const validVariations = variations.filter(v => v.color || v.size)
+      if (validVariations.length > 0) {
+        await supabase.from('product_variations').insert(
+          validVariations.map(v => ({
+            product_id: productId,
+            color: v.color || null,
+            size: v.size || null,
+            stock: v.stock,
           }))
         )
       }
@@ -170,93 +154,65 @@ export default function ProdutoForm({ categorias, fornecedores, produto }: Props
       router.push('/admin/produtos')
       router.refresh()
     } catch (err: any) {
-      setErro(err.message ?? 'Erro ao salvar produto.')
+      setError(err.message ?? 'Error saving product.')
       setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
-
-      {/* Informações básicas */}
       <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
-        <h2 className="text-white font-semibold">Informações básicas</h2>
+        <h2 className="text-white font-semibold">Basic Information</h2>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-2">Nome do produto *</label>
-          <input
-            type="text"
-            value={nome}
-            onChange={e => setNome(e.target.value)}
-            required
+          <label className="block text-zinc-400 text-sm mb-2">Product name *</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} required
             className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-            placeholder="Ex: Camisa Social Slim"
-          />
+            placeholder="Ex: Slim Fit Shirt" />
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-2">Descrição</label>
-          <textarea
-            value={descricao}
-            onChange={e => setDescricao(e.target.value)}
-            rows={3}
+          <label className="block text-zinc-400 text-sm mb-2">Description</label>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
             className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none resize-none"
-            placeholder="Descreva o produto..."
-          />
+            placeholder="Describe the product..." />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Preço (R$) *</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={preco}
-              onChange={e => setPreco(e.target.value)}
-              required
+            <label className="block text-zinc-400 text-sm mb-2">Price (R$) *</label>
+            <input type="number" step="0.01" min="0" value={price}
+              onChange={e => setPrice(e.target.value)} required
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-              placeholder="0,00"
-            />
+              placeholder="0.00" />
           </div>
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Preço promocional (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={precoPromocional}
-              onChange={e => setPrecoPromocional(e.target.value)}
+            <label className="block text-zinc-400 text-sm mb-2">Promo price (R$)</label>
+            <input type="number" step="0.01" min="0" value={promoPrice}
+              onChange={e => setPromoPrice(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-              placeholder="0,00"
-            />
+              placeholder="0.00" />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Categoria</label>
-            <select
-              value={categoriaId}
-              onChange={e => setCategoriaId(e.target.value)}
-              className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-            >
-              <option value="">Sem categoria</option>
-              {categorias.map(c => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+            <label className="block text-zinc-400 text-sm mb-2">Category</label>
+            <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+              className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none">
+              <option value="">No category</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">Fornecedor</label>
-            <select
-              value={fornecedorId}
-              onChange={e => setFornecedorId(e.target.value)}
-              className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
-            >
-              <option value="">Sem fornecedor</option>
-              {fornecedores.map(f => (
-                <option key={f.id} value={f.id}>{f.nome}</option>
+            <label className="block text-zinc-400 text-sm mb-2">Supplier</label>
+            <select value={supplierId} onChange={e => setSupplierId(e.target.value)}
+              className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none">
+              <option value="">No supplier</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </div>
@@ -264,44 +220,32 @@ export default function ProdutoForm({ categorias, fornecedores, produto }: Props
 
         <div className="flex gap-6">
           <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={ativo}
-              onChange={e => setAtivo(e.target.checked)}
-              className="w-4 h-4 rounded"
-            />
-            <span className="text-zinc-300 text-sm">Produto ativo (visível na loja)</span>
+            <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)}
+              className="w-4 h-4 rounded" />
+            <span className="text-zinc-300 text-sm">Active (visible in store)</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={destaque}
-              onChange={e => setDestaque(e.target.checked)}
-              className="w-4 h-4 rounded"
-            />
-            <span className="text-zinc-300 text-sm">Produto em destaque</span>
+            <input type="checkbox" checked={isFeatured} onChange={e => setIsFeatured(e.target.checked)}
+              className="w-4 h-4 rounded" />
+            <span className="text-zinc-300 text-sm">Featured product</span>
           </label>
         </div>
       </div>
 
-      {/* Fotos */}
       <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
-        <h2 className="text-white font-semibold">Fotos do produto</h2>
+        <h2 className="text-white font-semibold">Product Photos</h2>
 
         <div className="grid grid-cols-4 gap-3">
-          {fotos.map((foto, index) => (
+          {photos.map((photo, index) => (
             <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-zinc-800">
-              <img src={foto.url} alt="" className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => removerFoto(index)}
-                className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-              >
+              <img src={photo.url} alt="" className="w-full h-full object-cover" />
+              <button type="button" onClick={() => removePhoto(index)}
+                className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-red-600 transition-colors">
                 <X size={12} />
               </button>
               {index === 0 && (
                 <span className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                  Principal
+                  Main
                 </span>
               )}
             </div>
@@ -309,68 +253,44 @@ export default function ProdutoForm({ categorias, fornecedores, produto }: Props
 
           <label className="aspect-square rounded-lg border-2 border-dashed border-zinc-700 flex flex-col items-center justify-center cursor-pointer hover:border-zinc-500 transition-colors">
             <Upload size={20} className="text-zinc-500 mb-1" />
-            <span className="text-zinc-500 text-xs">Adicionar</span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFotoChange}
-              className="hidden"
-            />
+            <span className="text-zinc-500 text-xs">Add</span>
+            <input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="hidden" />
           </label>
         </div>
-        <p className="text-zinc-500 text-xs">A primeira foto será a imagem principal do produto.</p>
+        <p className="text-zinc-500 text-xs">The first photo will be the main product image.</p>
       </div>
 
-      {/* Variações */}
       <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-semibold">Variações e estoque</h2>
-          <button
-            type="button"
-            onClick={adicionarVariacao}
-            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
-          >
-            <Plus size={16} />
-            Adicionar variação
+          <h2 className="text-white font-semibold">Variations & Stock</h2>
+          <button type="button" onClick={addVariation}
+            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors">
+            <Plus size={16} /> Add variation
           </button>
         </div>
 
         <div className="space-y-3">
           <div className="grid grid-cols-12 gap-3 text-xs text-zinc-500 px-1">
-            <span className="col-span-4">Cor</span>
-            <span className="col-span-4">Tamanho</span>
-            <span className="col-span-3">Estoque</span>
+            <span className="col-span-4">Color</span>
+            <span className="col-span-4">Size</span>
+            <span className="col-span-3">Stock</span>
           </div>
 
-          {variacoes.map((v, index) => (
+          {variations.map((v, index) => (
             <div key={index} className="grid grid-cols-12 gap-3 items-center">
-              <input
-                type="text"
-                value={v.cor}
-                onChange={e => atualizarVariacao(index, 'cor', e.target.value)}
-                placeholder="Ex: Preto"
-                className="col-span-4 bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-white focus:outline-none text-sm"
-              />
-              <input
-                type="text"
-                value={v.tamanho}
-                onChange={e => atualizarVariacao(index, 'tamanho', e.target.value)}
+              <input type="text" value={v.color}
+                onChange={e => updateVariation(index, 'color', e.target.value)}
+                placeholder="Ex: Black"
+                className="col-span-4 bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-white focus:outline-none text-sm" />
+              <input type="text" value={v.size}
+                onChange={e => updateVariation(index, 'size', e.target.value)}
                 placeholder="Ex: M"
-                className="col-span-4 bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-white focus:outline-none text-sm"
-              />
-              <input
-                type="number"
-                min="0"
-                value={v.estoque}
-                onChange={e => atualizarVariacao(index, 'estoque', parseInt(e.target.value) || 0)}
-                className="col-span-3 bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-white focus:outline-none text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => removerVariacao(index)}
-                className="col-span-1 text-zinc-600 hover:text-red-400 transition-colors flex justify-center"
-              >
+                className="col-span-4 bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-white focus:outline-none text-sm" />
+              <input type="number" min="0" value={v.stock}
+                onChange={e => updateVariation(index, 'stock', parseInt(e.target.value) || 0)}
+                className="col-span-3 bg-zinc-800 text-white rounded-lg px-3 py-2 border border-zinc-700 focus:border-white focus:outline-none text-sm" />
+              <button type="button" onClick={() => removeVariation(index)}
+                className="col-span-1 text-zinc-600 hover:text-red-400 transition-colors flex justify-center">
                 <Trash2 size={16} />
               </button>
             </div>
@@ -378,24 +298,18 @@ export default function ProdutoForm({ categorias, fornecedores, produto }: Props
         </div>
       </div>
 
-      {erro && (
-        <p className="text-red-400 text-sm bg-red-950 rounded-lg px-4 py-3">{erro}</p>
+      {error && (
+        <p className="text-red-400 text-sm bg-red-950 rounded-lg px-4 py-3">{error}</p>
       )}
 
       <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-white text-black font-semibold px-8 py-3 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Salvando...' : produto ? 'Salvar alterações' : 'Cadastrar produto'}
+        <button type="submit" disabled={loading}
+          className="bg-white text-black font-semibold px-8 py-3 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50">
+          {loading ? 'Saving...' : product ? 'Save changes' : 'Create product'}
         </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-zinc-400 px-8 py-3 rounded-lg hover:text-white hover:bg-zinc-800 transition-colors"
-        >
-          Cancelar
+        <button type="button" onClick={() => router.back()}
+          className="text-zinc-400 px-8 py-3 rounded-lg hover:text-white hover:bg-zinc-800 transition-colors">
+          Cancel
         </button>
       </div>
     </form>

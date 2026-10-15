@@ -5,9 +5,9 @@ export default async function ClientesPage() {
   const supabase = createClient()
 
   const { data: clientes } = await supabase
-    .from('clientes')
-    .select('id, nome, whatsapp, email, cidade, estado')
-    .order('nome')
+    .from('customers')
+    .select('id, name, whatsapp, email, city, state')
+    .order('name')
 
   return <ClientesClient clientes={clientes ?? []} />
 }

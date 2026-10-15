@@ -1,58 +1,60 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient()
+    // Corre só no servidor: usa a service role porque o RLS não deixa
+    // visitantes lerem/criarem clientes e pedidos diretamente.
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    )
     const body = await request.json()
     const { cliente: dadosCliente, itens, total } = body
 
-    // Buscar WhatsApp da loja
     const { data: config } = await supabase
-      .from('configuracoes_loja')
+      .from('store_settings')
       .select('whatsapp')
-      .single()
+      .maybeSingle()
 
     const whatsappLoja = config?.whatsapp?.replace(/\D/g, '') ?? ''
 
-    // Verificar se cliente já existe pelo WhatsApp
     let clienteId: string
 
     const { data: clienteExistente } = await supabase
-      .from('clientes')
+      .from('customers')
       .select('id')
       .eq('whatsapp', dadosCliente.whatsapp)
       .maybeSingle()
 
     if (clienteExistente) {
-      // Actualizar dados do cliente existente
       await supabase
-        .from('clientes')
+        .from('customers')
         .update({
-          nome: dadosCliente.nome,
+          name: dadosCliente.nome,
           email: dadosCliente.email,
           cpf: dadosCliente.cpf,
-          endereco: dadosCliente.endereco,
-          cidade: dadosCliente.cidade,
-          estado: dadosCliente.estado,
-          cep: dadosCliente.cep,
+          address: dadosCliente.endereco,
+          city: dadosCliente.cidade,
+          state: dadosCliente.estado,
+          zip_code: dadosCliente.cep,
         })
         .eq('id', clienteExistente.id)
 
       clienteId = clienteExistente.id
     } else {
-      // Criar novo cliente
       const { data: novoCliente, error: erroCliente } = await supabase
-        .from('clientes')
+        .from('customers')
         .insert({
-          nome: dadosCliente.nome,
+          name: dadosCliente.nome,
           whatsapp: dadosCliente.whatsapp,
           email: dadosCliente.email,
           cpf: dadosCliente.cpf,
-          endereco: dadosCliente.endereco,
-          cidade: dadosCliente.cidade,
-          estado: dadosCliente.estado,
-          cep: dadosCliente.cep,
+          address: dadosCliente.endereco,
+          city: dadosCliente.cidade,
+          state: dadosCliente.estado,
+          zip_code: dadosCliente.cep,
         })
         .select('id')
         .single()
@@ -64,43 +66,41 @@ export async function POST(request: Request) {
       clienteId = novoCliente.id
     }
 
-    // Criar pedido — número gerado automaticamente pela sequência do Supabase
-    const { data: pedido, error: erroPedido } = await supabase
-      .from('pedidos')
+    const { data: order, error: erroOrder } = await supabase
+      .from('orders')
       .insert({
-        cliente_id: clienteId,
+        customer_id: clienteId,
         status: 'novo',
         total,
-        forma_pagamento: 'a combinar',
-        origem: 'loja_online',
+        payment_method: 'a combinar',
+        origin: 'loja_online',
       })
       .select('id, numero')
       .single()
 
-    if (erroPedido || !pedido) {
+    if (erroOrder || !order) {
       return NextResponse.json({ erro: 'Erro ao criar pedido' }, { status: 500 })
     }
 
-    // Criar itens do pedido
-    const pedidoItens = itens.map((item: any) => ({
-      pedido_id: pedido.id,
-      produto_id: item.produtoId,
-      variacao_id: item.variacaoId,
-      quantidade: item.quantidade,
-      preco_unitario: item.precoUnitario,
+    const orderItems = itens.map((item: any) => ({
+      order_id: order.id,
+      product_id: item.produtoId,
+      variation_id: item.variacaoId,
+      quantity: item.quantidade,
+      unit_price: item.precoUnitario,
     }))
 
     const { error: erroItens } = await supabase
-      .from('pedido_itens')
-      .insert(pedidoItens)
+      .from('order_items')
+      .insert(orderItems)
 
     if (erroItens) {
       return NextResponse.json({ erro: 'Erro ao registar itens do pedido' }, { status: 500 })
     }
 
     return NextResponse.json({
-      numero: pedido.numero,
-      pedidoId: pedido.id,
+      numero: order.numero,
+      pedidoId: order.id,
       whatsapp: whatsappLoja,
     })
   } catch (e: any) {

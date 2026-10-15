@@ -4,7 +4,10 @@ import { Plus, Pencil } from 'lucide-react'
 
 export default async function CategoriasPage() {
   const supabase = createClient()
-  const { data: categorias } = await supabase.from('categorias').select('*').order('nome')
+  const { data: categorias } = await supabase
+    .from('categories')
+    .select('*')
+    .order('name')
 
   return (
     <div>
@@ -32,11 +35,11 @@ export default async function CategoriasPage() {
             <div key={cat.id} className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-white font-semibold">{cat.nome}</h3>
+                  <h3 className="text-white font-semibold">{cat.name}</h3>
                   <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    cat.ativo ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-zinc-500'
+                    cat.is_active ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-zinc-500'
                   }`}>
-                    {cat.ativo ? 'Ativa' : 'Inativa'}
+                    {cat.is_active ? 'Ativa' : 'Inativa'}
                   </span>
                 </div>
                 <p className="text-zinc-500 text-sm mt-0.5">/{cat.slug}</p>

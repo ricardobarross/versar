@@ -1,9 +1,9 @@
 import FornecedorForm from '@/components/admin/FornecedorForm'
 
-export default function NovoFornecedorPage() {
+export default function NewSupplierPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">Novo Fornecedor</h1>
+      <h1 className="text-2xl font-bold text-white mb-8">New Supplier</h1>
       <FornecedorForm />
     </div>
   )

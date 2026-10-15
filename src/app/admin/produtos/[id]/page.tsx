@@ -1,41 +1,41 @@
 import { createClient } from '@/lib/supabase/server'
-import ProdutoForm from '@/components/admin/ProdutoForm'
+import ProductForm from '@/components/admin/ProdutoForm'
 import { notFound } from 'next/navigation'
 
-export default async function EditarProdutoPage({
+export default async function EditProductPage({
   params,
 }: {
   params: { id: string }
 }) {
   const supabase = createClient()
 
-  const { data: produto } = await supabase
-    .from('produtos')
-    .select(`*, produto_fotos(*), produto_variacoes(*)`)
+  const { data: product } = await supabase
+    .from('products')
+    .select(`*, product_images(*), product_variations(*)`)
     .eq('id', params.id)
     .single()
 
-  if (!produto) notFound()
+  if (!product) notFound()
 
-  const { data: categorias } = await supabase
-    .from('categorias')
+  const { data: categories } = await supabase
+    .from('categories')
     .select('*')
-    .eq('ativo', true)
-    .order('nome')
+    .eq('is_active', true)
+    .order('name')
 
-  const { data: fornecedores } = await supabase
-    .from('fornecedores')
+  const { data: suppliers } = await supabase
+    .from('suppliers')
     .select('*')
-    .eq('ativo', true)
-    .order('nome')
+    .eq('is_active', true)
+    .order('name')
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">Editar Produto</h1>
-      <ProdutoForm
-        produto={produto}
-        categorias={categorias ?? []}
-        fornecedores={fornecedores ?? []}
+      <h1 className="text-2xl font-bold text-white mb-8">Edit Product</h1>
+      <ProductForm
+        product={product}
+        categories={categories ?? []}
+        suppliers={suppliers ?? []}
       />
     </div>
   )

@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/app/api/admin/auth/route";
@@ -10,7 +9,6 @@ type Category = {
   description: string | null;
   is_active: boolean;
   created_at: string;
-  updated_at: string;
 };
 
 function getSupabaseEnv() {
@@ -115,6 +113,7 @@ export async function PUT(req: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
+    // Nota: tabela categories não tem coluna updated_at no schema
     const { data, error } = await supabase
       .from("categories")
       .update({
@@ -122,7 +121,6 @@ export async function PUT(req: NextRequest) {
         slug,
         description: description ?? null,
         is_active,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", id)
       .select("*")

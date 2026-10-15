@@ -9,65 +9,59 @@ export async function GET(
     const { id } = await params
     const supabase = createClient()
 
-    // Nível 1 — Queries SQL
-
-    // Produto atual
-    const { data: produto } = await supabase
-      .from('produtos')
+    const { data: product } = await supabase
+      .from('products')
       .select(`
-        id, nome, preco, preco_promocional, categoria_id,
-        produto_variacoes (estoque),
-        categorias (id, nome)
+        id, name, price, promo_price, category_id,
+        product_variations (stock),
+        categories (id, name)
       `)
       .eq('id', id)
       .single()
 
-    const estoqueTotal = (produto?.produto_variacoes as any[])?.reduce(
-      (acc: number, v: any) => acc + v.estoque, 0
+    const estoqueTotal = (product?.product_variations as any[])?.reduce(
+      (acc: number, v: any) => acc + v.stock, 0
     ) ?? 0
 
-    // Vendas do produto
     const { data: itensVendidos } = await supabase
-      .from('pedido_itens')
-      .select('quantidade, preco_unitario')
-      .eq('produto_id', id)
+      .from('order_items')
+      .select('quantity, unit_price')
+      .eq('product_id', id)
 
-    const totalVendido = itensVendidos?.reduce((acc, i) => acc + i.quantidade, 0) ?? 0
+    const totalVendido = itensVendidos?.reduce((acc, i) => acc + i.quantity, 0) ?? 0
     const receitaTotal = itensVendidos?.reduce(
-      (acc, i) => acc + i.quantidade * Number(i.preco_unitario), 0
+      (acc, i) => acc + i.quantity * Number(i.unit_price), 0
     ) ?? 0
-    const precoMedio = totalVendido > 0 ? receitaTotal / totalVendido : Number(produto?.preco ?? 0)
+    const precoMedio = totalVendido > 0 ? receitaTotal / totalVendido : Number(product?.price ?? 0)
 
-    // Produtos similares (mesma categoria, excluindo este)
     let produtosSimilares: { nome: string; preco: number }[] = []
-    if (produto?.categoria_id) {
+    if (product?.category_id) {
       const { data: similares } = await supabase
-        .from('produtos')
-        .select('nome, preco')
-        .eq('categoria_id', produto.categoria_id)
-        .eq('ativo', true)
+        .from('products')
+        .select('name, price')
+        .eq('category_id', product.category_id)
+        .eq('is_active', true)
         .neq('id', id)
         .limit(5)
 
       produtosSimilares = (similares ?? []).map(p => ({
-        nome: p.nome,
-        preco: Number(p.preco),
+        nome: p.name,
+        preco: Number(p.price),
       }))
     }
 
-    const precoAtual = Number(produto?.preco ?? 0)
-    const margemSugerida = precoAtual * 1.3 // sugestão base +30%
+    const precoAtual = Number(product?.price ?? 0)
+    const margemSugerida = precoAtual * 1.3
 
-    // Nível 2 — Análise com IA Anthropic ou Gerador Heurístico Inteligente
     let analiseIA = ''
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (apiKey) {
       const contexto = `
-Produto: ${produto?.nome ?? 'Desconhecido'}.
-Categoria: ${(produto?.categorias as any)?.nome ?? 'Sem categoria'}.
+Produto: ${product?.name ?? 'Desconhecido'}.
+Categoria: ${(product?.categories as any)?.name ?? 'Sem categoria'}.
 Preço actual: R$ ${precoAtual.toFixed(2)}.
-${produto?.preco_promocional ? `Preço promocional: R$ ${Number(produto.preco_promocional).toFixed(2)}.` : ''}
+${product?.promo_price ? `Preço promocional: R$ ${Number(product.promo_price).toFixed(2)}.` : ''}
 Estoque total: ${estoqueTotal} unidades.
 Unidades vendidas: ${totalVendido}.
 Receita gerada: R$ ${receitaTotal.toFixed(2)}.
@@ -97,7 +91,6 @@ Produtos similares na loja: ${produtosSimilares.length > 0
       } catch {}
     }
 
-    // Se falhar ou não tiver a chave de API, gera uma resposta local extremamente realista
     if (!analiseIA) {
       if (estoqueTotal <= 5 && totalVendido > 0) {
         analiseIA = `Alerta de estoque crítico: restam apenas ${estoqueTotal} unidades deste produto, que possui bom histórico de vendas (gerou R$ ${receitaTotal.toFixed(2)} em receita). Recomendado acionar o fornecedor imediatamente para reposição da grade. O posicionamento de preço atual de R$ ${precoAtual.toFixed(2)} está equilibrado.`

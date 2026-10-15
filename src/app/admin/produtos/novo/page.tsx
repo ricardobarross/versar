@@ -1,26 +1,26 @@
-import ProdutoForm from '@/components/admin/ProdutoForm'
+import ProductForm from '@/components/admin/ProdutoForm'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function NovoProdutoPage() {
+export default async function NewProductPage() {
   const supabase = createClient()
-  const { data: categorias } = await supabase
-    .from('categorias')
+  const { data: categories } = await supabase
+    .from('categories')
     .select('*')
-    .eq('ativo', true)
-    .order('nome')
+    .eq('is_active', true)
+    .order('name')
 
-  const { data: fornecedores } = await supabase
-    .from('fornecedores')
+  const { data: suppliers } = await supabase
+    .from('suppliers')
     .select('*')
-    .eq('ativo', true)
-    .order('nome')
+    .eq('is_active', true)
+    .order('name')
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-8">Novo Produto</h1>
-      <ProdutoForm
-        categorias={categorias ?? []}
-        fornecedores={fornecedores ?? []}
+      <h1 className="text-2xl font-bold text-white mb-8">New Product</h1>
+      <ProductForm
+        categories={categories ?? []}
+        suppliers={suppliers ?? []}
       />
     </div>
   )

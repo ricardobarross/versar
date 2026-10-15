@@ -1,102 +1,116 @@
-export type Produto = {
+export type Product = {
   id: string
-  nome: string
-  descricao: string | null
-  preco: number
-  preco_promocional: number | null
-  categoria_id: string | null
-  fornecedor_id: string | null
-  ativo: boolean
-  destaque: boolean
+  name: string
+  description: string | null
+  price: number
+  promo_price: number | null
+  category_id: string | null
+  supplier_id: string | null
+  is_active: boolean
+  is_featured: boolean
   slug: string | null
   created_at: string
-  updated_at: string
-  produto_fotos?: ProdutoFoto[]
-  produto_variacoes?: ProdutoVariacao[]
-  categorias?: Categoria
+  product_images?: ProductImage[]
+  product_variations?: ProductVariation[]
+  categories?: Category
 }
 
-export type ProdutoFoto = {
+export type ProductImage = {
   id: string
-  produto_id: string
+  product_id: string
   url: string
-  ordem: number
+  order: number
 }
 
-export type ProdutoVariacao = {
+export type ProductVariation = {
   id: string
-  produto_id: string
-  cor: string | null
-  tamanho: string | null
-  estoque: number
+  product_id: string
+  color: string | null
+  size: string | null
+  stock: number
 }
 
-export type Categoria = {
+export type Category = {
   id: string
-  nome: string
+  name: string
   slug: string
-  ativo: boolean
-}
-
-export type Cliente = {
-  id: string
-  nome: string
-  whatsapp: string | null
-  email: string | null
-  cpf: string | null
-  endereco: string | null
-  cidade: string | null
-  estado: string | null
-  cep: string | null
-  notas: string | null
+  description: string | null
+  is_active: boolean
   created_at: string
 }
 
-export type Fornecedor = {
+export type Customer = {
   id: string
-  nome: string
-  contato: string | null
-  telefone: string | null
+  name: string
+  phone: string | null
   email: string | null
-  endereco: string | null
-  notas: string | null
-  ativo: boolean
+  document: string | null
+  address: string | null
+  city: string | null
+  state: string | null
+  zip_code: string | null
   created_at: string
 }
 
-export type Pedido = {
+export type Supplier = {
   id: string
-  numero: number
-  cliente_id: string | null
-  status: 'novo' | 'confirmado' | 'separando' | 'enviado' | 'entregue' | 'cancelado'
+  name: string
+  contact: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export type Order = {
+  id: string
+  customer_id: string | null
+  status: 'new' | 'confirmed' | 'picking' | 'shipped' | 'delivered' | 'canceled'
   total: number
-  forma_pagamento: string | null
-  observacoes: string | null
-  origem: string
+  payment_method: string | null
+  origin: string
   created_at: string
-  clientes?: Cliente
-  pedido_itens?: PedidoItem[]
+  customers?: Customer
+  order_items?: OrderItem[]
 }
 
-export type PedidoItem = {
+export type OrderItem = {
   id: string
-  pedido_id: string
-  produto_id: string
-  variacao_id: string | null
-  quantidade: number
-  preco_unitario: number
-  produtos?: Produto
+  order_id: string
+  product_id: string
+  quantity: number
+  price: number
+  products?: Product
 }
 
-export type ConfiguracoesLoja = {
+export type StoreSettings = {
   id: string
-  nome_loja: string
-  whatsapp: string
-  logo_url: string | null
-  banner_url: string | null
-  banner_titulo: string | null
-  banner_subtitulo: string | null
-  cor_primaria: string
+  store_name: string
+  whatsapp: string | null
+  banner_title: string | null
+  banner_subtitle: string | null
+  primary_color: string | null
   instagram: string | null
   facebook: string | null
+  created_at: string
+}
+
+export type AccountPayable = {
+  id: string
+  description: string
+  value: number
+  due_date: string
+  status: string
+  created_at: string
+}
+
+export type StockMovement = {
+  id: string
+  product_id: string
+  variation_id: string | null
+  quantity: number
+  movement_type: string
+  created_at: string
 }

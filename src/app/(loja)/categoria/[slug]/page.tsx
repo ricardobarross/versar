@@ -13,81 +13,74 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const supabase = createClient()
-  const { data: categoria } = await supabase
-    .from('categorias')
-    .select('nome')
+  const { data: category } = await supabase
+    .from('categories')
+    .select('name')
     .eq('slug', slug)
     .single()
 
-  return { title: categoria?.nome ?? 'Categoria' }
+  return { title: category?.name ?? 'Category' }
 }
 
-export default async function CategoriaPage({ params }: Props) {
+export default async function CategoryPage({ params }: Props) {
   const { slug } = await params
   const supabase = createClient()
 
-  const { data: categoria } = await supabase
-    .from('categorias')
-    .select('id, nome, slug')
+  const { data: category } = await supabase
+    .from('categories')
+    .select('id, name, slug')
     .eq('slug', slug)
-    .eq('ativo', true)
+    .eq('is_active', true)
     .single()
 
-  if (!categoria) notFound()
+  if (!category) notFound()
 
-  const [{ data: produtos }, { data: categorias }] = await Promise.all([
+  const [{ data: products }, { data: categories }] = await Promise.all([
     supabase
-      .from('produtos')
-      .select(`id, nome, slug, preco, preco_promocional, destaque, produto_fotos (url, ordem)`)
-      .eq('ativo', true)
-      .eq('categoria_id', categoria.id)
+      .from('products')
+      .select(`id, name, slug, price, promo_price, is_featured, product_images (url, order)`)
+      .eq('is_active', true)
+      .eq('category_id', category.id)
       .order('created_at', { ascending: false }),
     supabase
-      .from('categorias')
-      .select('id, nome, slug')
-      .eq('ativo', true)
-      .order('nome'),
+      .from('categories')
+      .select('id, name, slug')
+      .eq('is_active', true)
+      .order('name'),
   ])
 
-  const lista = produtos ?? []
-  const cats = categorias ?? []
+  const lista = products ?? []
+  const cats = categories ?? []
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-      {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs text-zinc-400 mb-6 overflow-x-auto scrollbar-hide whitespace-nowrap">
-        <Link href="/" className="hover:text-zinc-700 transition-colors">Início</Link>
+        <Link href="/" className="hover:text-zinc-700 transition-colors">Home</Link>
         <span>/</span>
-        <Link href="/produtos" className="hover:text-zinc-700 transition-colors">Produtos</Link>
+        <Link href="/produtos" className="hover:text-zinc-700 transition-colors">Products</Link>
         <span>/</span>
-        <span className="text-zinc-700 font-medium">{categoria.nome}</span>
+        <span className="text-zinc-700 font-medium">{category.name}</span>
       </nav>
 
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">{categoria.nome}</h1>
-        <p className="text-zinc-500 mt-1 text-sm">{lista.length} produto{lista.length !== 1 ? 's' : ''}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">{category.name}</h1>
+        <p className="text-zinc-500 mt-1 text-sm">{lista.length} product{lista.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {/* Filtro de categorias */}
       {cats.length > 0 && (
         <div className="flex gap-2 mb-6 sm:mb-8 pb-6 border-b border-zinc-200 overflow-x-auto scrollbar-hide">
-          <Link
-            href="/produtos"
-            className="flex-shrink-0 px-4 py-2 text-sm font-medium border border-zinc-300 text-zinc-600 hover:border-zinc-900 transition-colors"
-          >
-            Todos
+          <Link href="/produtos"
+            className="flex-shrink-0 px-4 py-2 text-sm font-medium border border-zinc-300 text-zinc-600 hover:border-zinc-900 transition-colors">
+            All
           </Link>
           {cats.map(cat => (
-            <Link
-              key={cat.id}
-              href={`/categoria/${cat.slug}`}
+            <Link key={cat.id} href={`/categoria/${cat.slug}`}
               className={`flex-shrink-0 px-4 py-2 text-sm font-medium border transition-colors ${
                 cat.slug === slug
                   ? 'border-zinc-900 bg-zinc-900 text-white'
                   : 'border-zinc-300 text-zinc-600 hover:border-zinc-900'
-              }`}
-            >
-              {cat.nome}
+              }`}>
+              {cat.name}
             </Link>
           ))}
         </div>
@@ -95,31 +88,26 @@ export default async function CategoriaPage({ params }: Props) {
 
       {lista.length === 0 && (
         <div className="text-center py-20 text-zinc-400">
-          <p className="text-xl font-medium">Nenhum produto nesta categoria</p>
+          <p className="text-xl font-medium">No products in this category</p>
           <Link href="/produtos" className="mt-4 inline-block text-sm text-zinc-600 underline hover:text-zinc-900">
-            Ver todos os produtos
+            View all products
           </Link>
         </div>
       )}
 
       {lista.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {lista.map(produto => {
-            const fotos = (produto.produto_fotos as any[]) ?? []
-            const foto = fotos.sort((a, b) => a.ordem - b.ordem)[0]?.url ?? null
-            const temPromocao = produto.preco_promocional && produto.preco_promocional < produto.preco
+          {lista.map(product => {
+            const images = (product.product_images as any[]) ?? []
+            const photo = images.sort((a, b) => a.order - b.order)[0]?.url ?? null
+            const hasPromo = product.promo_price && product.promo_price < product.price
 
             return (
-              <Link key={produto.id} href={`/produtos/${produto.slug}`} className="group">
+              <Link key={product.id} href={`/produtos/${product.slug}`} className="group">
                 <div className="aspect-[3/4] bg-zinc-100 overflow-hidden mb-3 relative">
-                  {foto ? (
-                    <Image
-                      src={foto}
-                      alt={produto.nome}
-                      width={400}
-                      height={533}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                  {photo ? (
+                    <Image src={photo} alt={product.name} width={400} height={533}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-300">
                       <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,19 +115,19 @@ export default async function CategoriaPage({ params }: Props) {
                       </svg>
                     </div>
                   )}
-                  {temPromocao && (
-                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5">PROMO</div>
+                  {hasPromo && (
+                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5">SALE</div>
                   )}
                 </div>
-                <h3 className="font-medium text-zinc-900 text-sm line-clamp-2">{produto.nome}</h3>
+                <h3 className="font-medium text-zinc-900 text-sm line-clamp-2">{product.name}</h3>
                 <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                  {temPromocao ? (
+                  {hasPromo ? (
                     <>
-                      <span className="font-bold text-red-600 text-sm">R$ {Number(produto.preco_promocional).toFixed(2).replace('.', ',')}</span>
-                      <span className="text-xs text-zinc-400 line-through">R$ {Number(produto.preco).toFixed(2).replace('.', ',')}</span>
+                      <span className="font-bold text-red-600 text-sm">R$ {Number(product.promo_price).toFixed(2).replace('.', ',')}</span>
+                      <span className="text-xs text-zinc-400 line-through">R$ {Number(product.price).toFixed(2).replace('.', ',')}</span>
                     </>
                   ) : (
-                    <span className="font-bold text-zinc-900 text-sm">R$ {Number(produto.preco).toFixed(2).replace('.', ',')}</span>
+                    <span className="font-bold text-zinc-900 text-sm">R$ {Number(product.price).toFixed(2).replace('.', ',')}</span>
                   )}
                 </div>
               </Link>

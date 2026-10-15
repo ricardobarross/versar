@@ -8,32 +8,32 @@ function supabaseServer() {
   );
 }
 
-// =====================================
-// GET /api/fornecedores/[id]
-// Busca fornecedor por ID
-// =====================================
+// GET /api/products/[id]
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from("fornecedores")
-    .select("*")
+    .from("products")
+    .select(`
+      *,
+      categories ( name ),
+      suppliers ( name ),
+      product_variations (*),
+      product_images (*)
+    `)
     .eq("id", id)
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: "Fornecedor não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
   }
 
   return NextResponse.json(data);
 }
 
-// =====================================
-// PUT /api/fornecedores/[id]
-// Atualiza fornecedor
-// =====================================
+// PUT /api/products/[id]
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   const body = await request.json();
@@ -41,46 +41,40 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from("fornecedores")
-    .update({
-      ...body,
-      updated_at: new Date().toISOString(),
-    })
+    .from("products")
+    .update(body)
     .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar fornecedor." }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao atualizar produto." }, { status: 500 });
   }
 
   return NextResponse.json({
     success: true,
-    message: "Fornecedor atualizado com sucesso.",
+    message: "Produto atualizado com sucesso.",
     data,
   });
 }
 
-// =====================================
-// DELETE /api/fornecedores/[id]
-// Remove fornecedor
-// =====================================
+// DELETE /api/products/[id]
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
   const supabase = supabaseServer();
 
-  const { error } = await supabase
-    .from("fornecedores")
-    .delete()
-    .eq("id", id);
+  await supabase.from("product_images").delete().eq("product_id", id);
+  await supabase.from("product_variations").delete().eq("product_id", id);
+
+  const { error } = await supabase.from("products").delete().eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao apagar fornecedor." }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao apagar produto." }, { status: 500 });
   }
 
   return NextResponse.json({
     success: true,
-    message: "Fornecedor removido com sucesso.",
+    message: "Produto removido com sucesso.",
   });
 }

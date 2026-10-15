@@ -7,11 +7,11 @@ import SecretariaSheet from '@/components/admin/SecretariaSheet'
 
 interface Cliente {
   id: string
-  nome: string
+  name: string
   whatsapp: string | null
   email: string | null
-  cidade: string | null
-  estado: string | null
+  city: string | null
+  state: string | null
 }
 
 export default function ClientesClient({ clientes }: { clientes: Cliente[] }) {
@@ -20,7 +20,6 @@ export default function ClientesClient({ clientes }: { clientes: Cliente[] }) {
   return (
     <>
       <div>
-        {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Clientes</h1>
           <Link
@@ -33,14 +32,12 @@ export default function ClientesClient({ clientes }: { clientes: Cliente[] }) {
           </Link>
         </div>
 
-        {/* Vazio */}
         {clientes.length === 0 && (
           <div className="bg-zinc-900 rounded-2xl p-12 border border-zinc-800 text-center">
             <p className="text-zinc-400">Nenhum cliente cadastrado ainda.</p>
           </div>
         )}
 
-        {/* Lista */}
         {clientes.length > 0 && (
           <div className="grid grid-cols-1 gap-3">
             {clientes.map((cliente) => (
@@ -48,14 +45,12 @@ export default function ClientesClient({ clientes }: { clientes: Cliente[] }) {
                 key={cliente.id}
                 className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex items-start sm:items-center gap-3 sm:gap-4"
               >
-                {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-white font-bold flex-shrink-0 mt-0.5 sm:mt-0">
-                  {cliente.nome.charAt(0).toUpperCase()}
+                  {cliente.name.charAt(0).toUpperCase()}
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold truncate">{cliente.nome}</h3>
+                  <h3 className="text-white font-semibold truncate">{cliente.name}</h3>
                   <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-4 mt-1">
                     {cliente.whatsapp && (
                       <span className="text-zinc-400 text-xs sm:text-sm flex items-center gap-1 truncate">
@@ -69,26 +64,23 @@ export default function ClientesClient({ clientes }: { clientes: Cliente[] }) {
                         <span className="truncate">{cliente.email}</span>
                       </span>
                     )}
-                    {cliente.cidade && (
+                    {cliente.city && (
                       <span className="text-zinc-400 text-xs sm:text-sm flex items-center gap-1">
                         <MapPin size={11} className="flex-shrink-0" />
-                        <span>{cliente.cidade}{cliente.estado ? `/${cliente.estado}` : ''}</span>
+                        <span>{cliente.city}{cliente.state ? `/${cliente.state}` : ''}</span>
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Ações */}
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {/* Secretária */}
                   <button
-                    onClick={() => setSecretaria({ id: cliente.id, nome: cliente.nome })}
+                    onClick={() => setSecretaria({ id: cliente.id, nome: cliente.name })}
                     className="p-2 text-zinc-500 hover:text-violet-400 hover:bg-violet-950/40 rounded-lg transition-colors"
                     title="Secretária inteligente"
                   >
                     <Sparkles size={16} />
                   </button>
-                  {/* Editar */}
                   <Link
                     href={`/admin/clientes/${cliente.id}`}
                     className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
@@ -103,7 +95,6 @@ export default function ClientesClient({ clientes }: { clientes: Cliente[] }) {
         )}
       </div>
 
-      {/* Bottom Sheet */}
       <SecretariaSheet
         tipo="cliente"
         id={secretaria?.id ?? ''}

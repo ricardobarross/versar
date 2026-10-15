@@ -9,47 +9,41 @@ export async function GET(
     const { id } = await params
     const supabase = createClient()
 
-    // Nível 1 — Queries SQL
-
-    // Pedidos do cliente
-    const { data: pedidos } = await supabase
-      .from('pedidos')
+    const { data: orders } = await supabase
+      .from('orders')
       .select(`
         id, total, status, created_at,
-        pedido_itens (
-          quantidade,
-          produtos (nome)
+        order_items (
+          quantity,
+          products (name)
         )
       `)
-      .eq('cliente_id', id)
+      .eq('customer_id', id)
       .order('created_at', { ascending: false })
 
-    const totalPedidos = pedidos?.length ?? 0
-    const totalGasto = pedidos?.reduce((acc, p) => acc + Number(p.total), 0) ?? 0
+    const totalPedidos = orders?.length ?? 0
+    const totalGasto = orders?.reduce((acc, p) => acc + Number(p.total), 0) ?? 0
 
-    // Último pedido
-    const ultimoPedidoRaw = pedidos?.[0]
+    const ultimoOrderRaw = orders?.[0]
     let ultimoPedido: string | null = null
     let diasSemComprar: number | null = null
 
-    if (ultimoPedidoRaw) {
-      const data = new Date(ultimoPedidoRaw.created_at)
+    if (ultimoOrderRaw) {
+      const data = new Date(ultimoOrderRaw.created_at)
       ultimoPedido = data.toLocaleDateString('pt-BR')
       diasSemComprar = Math.floor((Date.now() - data.getTime()) / (1000 * 60 * 60 * 24))
     }
 
-    // Pagamentos pendentes (pedidos novo ou confirmado)
-    const pagamentosPendentes = pedidos?.filter(p =>
+    const pagamentosPendentes = orders?.filter(p =>
       p.status === 'novo' || p.status === 'confirmado'
     ).length ?? 0
 
-    // Produtos habituais — agregar itens de todos os pedidos
     const contagemProdutos: Record<string, number> = {}
-    pedidos?.forEach(pedido => {
-      const itens = (pedido.pedido_itens as any[]) ?? []
+    orders?.forEach(order => {
+      const itens = (order.order_items as any[]) ?? []
       itens.forEach(item => {
-        const nome = item.produtos?.nome
-        if (nome) contagemProdutos[nome] = (contagemProdutos[nome] ?? 0) + item.quantidade
+        const nome = item.products?.name
+        if (nome) contagemProdutos[nome] = (contagemProdutos[nome] ?? 0) + item.quantity
       })
     })
 
@@ -58,7 +52,6 @@ export async function GET(
       .slice(0, 5)
       .map(([nome, quantidade]) => ({ nome, quantidade }))
 
-    // Nível 2 — Resumo com IA Anthropic ou Gerador Heurístico Inteligente
     let resumoIA = ''
 
     if (totalPedidos > 0) {
@@ -91,10 +84,8 @@ Produtos que mais compra: ${produtosHabituais.map(p => `${p.nome} (${p.quantidad
         } catch {}
       }
 
-      // Se falhar ou não tiver a chave de API, gera uma resposta local extremamente realista
       if (!resumoIA) {
         const produtoMaisComprado = produtosHabituais[0]?.nome ?? 'peças básicas'
-        
         if (pagamentosPendentes > 0) {
           resumoIA = `Cliente frequente com R$ ${totalGasto.toFixed(2)} gastos na loja, mas possui atualmente ${pagamentosPendentes} pagamento(s) pendente(s). Recomenda-se um contato direto via WhatsApp para regularizar a situação financeira e liberar novos pedidos. Seu produto preferido é ${produtoMaisComprado}.`
         } else if (diasSemComprar !== null && diasSemComprar > 180) {

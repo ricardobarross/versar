@@ -3,11 +3,20 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { Cliente } from '@/types'
 
-type Props = {
-  cliente?: Cliente
+type Cliente = {
+  id?: string
+  name?: string
+  phone?: string | null
+  email?: string | null
+  document?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip_code?: string | null
 }
+
+type Props = { cliente?: Cliente }
 
 export default function ClienteForm({ cliente }: Props) {
   const router = useRouter()
@@ -15,32 +24,27 @@ export default function ClienteForm({ cliente }: Props) {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
 
-  const [nome, setNome] = useState(cliente?.nome ?? '')
-  const [whatsapp, setWhatsapp] = useState(cliente?.whatsapp ?? '')
+  const [name, setName] = useState(cliente?.name ?? '')
+  const [phone, setPhone] = useState(cliente?.phone ?? '')
   const [email, setEmail] = useState(cliente?.email ?? '')
-  const [cpf, setCpf] = useState(cliente?.cpf ?? '')
-  const [endereco, setEndereco] = useState(cliente?.endereco ?? '')
-  const [cidade, setCidade] = useState(cliente?.cidade ?? '')
-  const [estado, setEstado] = useState(cliente?.estado ?? '')
-  const [cep, setCep] = useState(cliente?.cep ?? '')
-  const [notas, setNotas] = useState(cliente?.notas ?? '')
+  const [document, setDocument] = useState(cliente?.document ?? '')
+  const [address, setAddress] = useState(cliente?.address ?? '')
+  const [city, setCity] = useState(cliente?.city ?? '')
+  const [state, setState] = useState(cliente?.state ?? '')
+  const [zipCode, setZipCode] = useState(cliente?.zip_code ?? '')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setErro('')
 
-    const dados = { nome, whatsapp, email, cpf, endereco, cidade, estado, cep, notas }
+    const dados = { name, phone, email, document, address, city, state, zip_code: zipCode }
 
     const { error } = cliente?.id
-      ? await supabase.from('clientes').update(dados).eq('id', cliente.id)
-      : await supabase.from('clientes').insert(dados)
+      ? await supabase.from('customers').update(dados).eq('id', cliente.id)
+      : await supabase.from('customers').insert(dados)
 
-    if (error) {
-      setErro(error.message)
-      setLoading(false)
-      return
-    }
+    if (error) { setErro(error.message); setLoading(false); return }
 
     router.push('/admin/clientes')
     router.refresh()
@@ -53,15 +57,15 @@ export default function ClienteForm({ cliente }: Props) {
 
         <div>
           <label className="block text-zinc-400 text-sm mb-2">Nome completo *</label>
-          <input type="text" value={nome} onChange={e => setNome(e.target.value)} required
+          <input type="text" value={name} onChange={e => setName(e.target.value)} required
             className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
             placeholder="Ex: João Silva" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-zinc-400 text-sm mb-2">WhatsApp</label>
-            <input type="text" value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
+            <label className="block text-zinc-400 text-sm mb-2">Telefone / WhatsApp</label>
+            <input type="text" value={phone} onChange={e => setPhone(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
               placeholder="+55 81 99999-9999" />
           </div>
@@ -74,8 +78,8 @@ export default function ClienteForm({ cliente }: Props) {
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-2">CPF</label>
-          <input type="text" value={cpf} onChange={e => setCpf(e.target.value)}
+          <label className="block text-zinc-400 text-sm mb-2">CPF / Documento</label>
+          <input type="text" value={document} onChange={e => setDocument(e.target.value)}
             className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
             placeholder="000.000.000-00" />
         </div>
@@ -86,7 +90,7 @@ export default function ClienteForm({ cliente }: Props) {
 
         <div>
           <label className="block text-zinc-400 text-sm mb-2">Endereço</label>
-          <input type="text" value={endereco} onChange={e => setEndereco(e.target.value)}
+          <input type="text" value={address} onChange={e => setAddress(e.target.value)}
             className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
             placeholder="Rua, número, bairro" />
         </div>
@@ -94,13 +98,13 @@ export default function ClienteForm({ cliente }: Props) {
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2">
             <label className="block text-zinc-400 text-sm mb-2">Cidade</label>
-            <input type="text" value={cidade} onChange={e => setCidade(e.target.value)}
+            <input type="text" value={city} onChange={e => setCity(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
               placeholder="Ex: Recife" />
           </div>
           <div>
             <label className="block text-zinc-400 text-sm mb-2">Estado</label>
-            <input type="text" value={estado} onChange={e => setEstado(e.target.value)}
+            <input type="text" value={state} onChange={e => setState(e.target.value)}
               className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
               placeholder="PE" maxLength={2} />
           </div>
@@ -108,17 +112,10 @@ export default function ClienteForm({ cliente }: Props) {
 
         <div>
           <label className="block text-zinc-400 text-sm mb-2">CEP</label>
-          <input type="text" value={cep} onChange={e => setCep(e.target.value)}
+          <input type="text" value={zipCode} onChange={e => setZipCode(e.target.value)}
             className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none"
             placeholder="00000-000" />
         </div>
-      </div>
-
-      <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 space-y-4">
-        <h2 className="text-white font-semibold">Observações</h2>
-        <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={3}
-          className="w-full bg-zinc-800 text-white rounded-lg px-4 py-3 border border-zinc-700 focus:border-white focus:outline-none resize-none"
-          placeholder="Notas internas sobre o cliente..." />
       </div>
 
       {erro && <p className="text-red-400 text-sm bg-red-950 rounded-lg px-4 py-3">{erro}</p>}

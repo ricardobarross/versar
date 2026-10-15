@@ -12,7 +12,7 @@ function ToggleAtivoButton({ id, ativo: inicial }: { id: string; ativo: boolean 
   async function handleToggle() {
     setLoading(true)
     try {
-      const res = await fetch(`/api/produtos/${id}/toggle`, { method: 'POST' })
+      const res = await fetch(`/api/products/${id}/toggle`, { method: 'POST' })
       if (res.ok) setAtivo(a => !a)
     } finally {
       setLoading(false)
@@ -33,14 +33,14 @@ function ToggleAtivoButton({ id, ativo: inicial }: { id: string; ativo: boolean 
 
 interface Produto {
   id: string
-  nome: string
-  preco: number
-  preco_promocional: number | null
-  ativo: boolean
-  destaque: boolean
-  produto_fotos: { url: string; ordem: number }[]
-  produto_variacoes: { estoque: number }[]
-  categorias: { nome: string } | null
+  name: string
+  price: number
+  promo_price: number | null
+  is_active: boolean
+  is_featured: boolean
+  product_images: { url: string; ordem: number }[]
+  product_variations: { stock: number }[]
+  categories: { name: string } | null
 }
 
 export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
@@ -49,7 +49,6 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
   return (
     <>
       <div>
-        {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Produtos</h1>
           <Link
@@ -62,7 +61,6 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
           </Link>
         </div>
 
-        {/* Vazio */}
         {produtos.length === 0 && (
           <div className="bg-zinc-900 rounded-2xl p-12 border border-zinc-800 text-center">
             <p className="text-zinc-400">Nenhum produto cadastrado ainda.</p>
@@ -76,22 +74,20 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
           </div>
         )}
 
-        {/* Lista */}
         {produtos.length > 0 && (
           <div className="grid grid-cols-1 gap-3">
             {produtos.map((produto) => {
-              const foto = produto.produto_fotos?.sort((a, b) => a.ordem - b.ordem)[0]
-              const estoqueTotal = produto.produto_variacoes?.reduce((acc, v) => acc + v.estoque, 0) ?? 0
+              const foto = produto.product_images?.sort((a, b) => a.ordem - b.ordem)[0]
+              const estoqueTotal = produto.product_variations?.reduce((acc, v) => acc + v.stock, 0) ?? 0
 
               return (
                 <div
                   key={produto.id}
                   className="bg-zinc-900 rounded-2xl border border-zinc-800 p-3 sm:p-4 flex items-center gap-3 sm:gap-4"
                 >
-                  {/* Foto */}
                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-zinc-800 overflow-hidden flex-shrink-0">
                     {foto ? (
-                      <img src={foto.url} alt={produto.nome} className="w-full h-full object-cover" />
+                      <img src={foto.url} alt={produto.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
                         Sem foto
@@ -99,31 +95,30 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-white font-semibold truncate">{produto.nome}</h3>
+                      <h3 className="text-white font-semibold truncate">{produto.name}</h3>
                       <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                        produto.ativo ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-zinc-500'
+                        produto.is_active ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-zinc-500'
                       }`}>
-                        {produto.ativo ? 'Ativo' : 'Inativo'}
+                        {produto.is_active ? 'Ativo' : 'Inativo'}
                       </span>
-                      {produto.destaque && (
+                      {produto.is_featured && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900 text-yellow-400 flex-shrink-0">
                           Destaque
                         </span>
                       )}
                     </div>
                     <p className="text-zinc-400 text-xs sm:text-sm mt-0.5">
-                      {produto.categorias?.nome ?? 'Sem categoria'}
+                      {produto.categories?.name ?? 'Sem categoria'}
                     </p>
                     <div className="flex items-center gap-2 sm:gap-4 mt-1 flex-wrap">
                       <span className="text-white font-bold text-sm">
-                        R$ {produto.preco.toFixed(2).replace('.', ',')}
+                        R$ {produto.price.toFixed(2).replace('.', ',')}
                       </span>
-                      {produto.preco_promocional && (
+                      {produto.promo_price && (
                         <span className="text-green-400 text-xs sm:text-sm">
-                          Promo: R$ {produto.preco_promocional.toFixed(2).replace('.', ',')}
+                          Promo: R$ {produto.promo_price.toFixed(2).replace('.', ',')}
                         </span>
                       )}
                       <span className={`text-xs sm:text-sm ${estoqueTotal === 0 ? 'text-red-400' : 'text-zinc-400'}`}>
@@ -132,17 +127,15 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
                     </div>
                   </div>
 
-                  {/* Ações */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    {/* Secretária */}
                     <button
-                      onClick={() => setSecretaria({ id: produto.id, nome: produto.nome })}
+                      onClick={() => setSecretaria({ id: produto.id, nome: produto.name })}
                       className="p-2 text-zinc-500 hover:text-violet-400 hover:bg-violet-950/40 rounded-lg transition-colors"
                       title="Secretária inteligente"
                     >
                       <Sparkles size={16} />
                     </button>
-                    <ToggleAtivoButton id={produto.id} ativo={produto.ativo} />
+                    <ToggleAtivoButton id={produto.id} ativo={produto.is_active} />
                     <Link
                       href={`/admin/produtos/${produto.id}`}
                       className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
@@ -157,7 +150,6 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
         )}
       </div>
 
-      {/* Bottom Sheet */}
       <SecretariaSheet
         tipo="produto"
         id={secretaria?.id ?? ''}

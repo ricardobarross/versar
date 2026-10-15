@@ -4,7 +4,10 @@ import { Plus, Pencil, Phone } from 'lucide-react'
 
 export default async function FornecedoresPage() {
   const supabase = createClient()
-  const { data: fornecedores } = await supabase.from('fornecedores').select('*').order('nome')
+  const { data: fornecedores } = await supabase
+    .from('suppliers')
+    .select('*')
+    .order('name')
 
   return (
     <div>
@@ -32,18 +35,18 @@ export default async function FornecedoresPage() {
             <div key={f.id} className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-white font-semibold">{f.nome}</h3>
+                  <h3 className="text-white font-semibold">{f.name}</h3>
                   <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    f.ativo ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-zinc-500'
+                    f.is_active ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-zinc-500'
                   }`}>
-                    {f.ativo ? 'Ativo' : 'Inativo'}
+                    {f.is_active ? 'Ativo' : 'Inativo'}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                  {f.contato && <span className="text-zinc-400 text-xs sm:text-sm">{f.contato}</span>}
-                  {f.telefone && (
+                  {f.contact && <span className="text-zinc-400 text-xs sm:text-sm">{f.contact}</span>}
+                  {f.phone && (
                     <span className="text-zinc-400 text-xs sm:text-sm flex items-center gap-1">
-                      <Phone size={11} className="flex-shrink-0" /> {f.telefone}
+                      <Phone size={11} className="flex-shrink-0" /> {f.phone}
                     </span>
                   )}
                 </div>
